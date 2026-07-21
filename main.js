@@ -59,6 +59,43 @@ window.addEventListener("DOMContentLoaded", () => {
   const region2Btn = document.getElementById("region2Btn");
   const advanceRegionBtn = document.getElementById("advanceRegionBtn");
   const territoryPanel = document.getElementById("territoryPanel");
+  const mobileOverviewToggle = document.getElementById("mobileOverviewToggle");
+
+  const mobileOverviewMedia = window.matchMedia("(max-width: 720px)");
+  const setMobileOverviewOpen = (open) => {
+    if (!territoryPanel || !mobileOverviewToggle) return;
+    const shouldCollapse = mobileOverviewMedia.matches && !open;
+    territoryPanel.classList.toggle("is-mobile-collapsed", shouldCollapse);
+    mobileOverviewToggle.classList.toggle("is-active", !shouldCollapse);
+    mobileOverviewToggle.setAttribute("aria-expanded", String(!shouldCollapse));
+    mobileOverviewToggle.textContent = shouldCollapse ? "운영" : "닫기";
+  };
+
+  if (mobileOverviewToggle) {
+    mobileOverviewToggle.addEventListener("click", () => {
+      const collapsed = territoryPanel.classList.contains("is-mobile-collapsed");
+      setMobileOverviewOpen(collapsed);
+    });
+  }
+
+  const syncMobileOverview = () => {
+    if (mobileOverviewMedia.matches) setMobileOverviewOpen(false);
+    else {
+      territoryPanel.classList.remove("is-mobile-collapsed");
+      if (mobileOverviewToggle) {
+        mobileOverviewToggle.classList.remove("is-active");
+        mobileOverviewToggle.setAttribute("aria-expanded", "true");
+        mobileOverviewToggle.textContent = "운영";
+      }
+    }
+  };
+  syncMobileOverview();
+  if (typeof mobileOverviewMedia.addEventListener === "function") {
+    mobileOverviewMedia.addEventListener("change", syncMobileOverview);
+  } else if (typeof mobileOverviewMedia.addListener === "function") {
+    mobileOverviewMedia.addListener(syncMobileOverview);
+  }
+
   const territoryCount = document.getElementById("territoryCount");
   const populationValue = document.getElementById("populationValue");
   const securityValue = document.getElementById("securityValue");
