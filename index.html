@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini War - 라운드 방어</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <section id="worldStatusBar" class="world-status-bar wave-status-bar" aria-label="라운드 방어 현황">
+      <span>라운드 <b id="worldFriendlyCount">0</b></span>
+      <span>남은 적 <b id="worldEnemyCount">0</b></span>
+      <span>누적 처치 <b id="worldReserveCount">0</b></span>
+      <span>골드 <b id="worldBattleCount">0</b></span>
+      <span>다음 공격 <b id="worldSupplyValue">대기</b></span>
+      <span class="world-status-bar__mode" id="worldViewMode">방어 준비</span>
+    </section>
+    <aside id="worldRegionPanel" class="world-region-panel" aria-label="선택 지역 정보" hidden>
+      <div class="world-region-panel__header">
+        <div><small>선택 지역</small><strong id="worldRegionName">중앙 전선</strong></div>
+        <span id="worldRegionOwner">아군</span>
+      </div>
+      <div class="world-region-panel__grid">
+        <span>지형 <b id="worldRegionTerrain">평야</b></span>
+        <span>보급 <b id="worldRegionSupply">0</b></span>
+        <span>아군 <b id="worldRegionFriendly">0</b></span>
+        <span>적군 <b id="worldRegionEnemy">0</b></span>
+        <span>전투 <b id="worldRegionBattle">대기</b></span>
+        <span>위험 <b id="worldRegionDanger">낮음</b></span>
+      </div>
+      <small id="worldRegionPrecisionType" class="world-region-panel__note">중앙 본부 정밀 화면</small>
+      <div class="world-region-panel__actions">
+        <button id="worldRegionDeployBtn" type="button" hidden>대기 병력 배치</button>
+        <button id="worldRegionFocusBtn" type="button">전술 확대</button>
+        <button id="worldRegionEnterBtn" type="button">정밀 전투 진입</button>
+      </div>
+    </aside>
+    <button id="worldBackBtn" class="world-back-button" type="button" hidden>← 전략 지도로 복귀</button>
+    <aside id="worldDebugPanel" class="world-debug-panel" hidden aria-label="개발자 표시">
+      <strong>WORLD DEBUG</strong>
+      <pre id="worldDebugText"></pre>
+    </aside>
+    <div id="regionHud" class="region-hud" hidden>지역 1 / 2</div>
+    <div id="regionControls" class="region-controls" aria-label="지역 이동" hidden>
+      <button id="region1Btn" type="button">지역 1</button>
+      <button id="region2Btn" type="button" disabled>지역 2</button>
+      <button id="advanceRegionBtn" type="button" hidden>다음 전선 출격</button>
+    </div>
+    <div id="cameraControls" class="camera-controls" aria-label="카메라 조작">
+      <button id="zoomOutBtn" type="button" aria-label="축소">−</button>
+      <span id="zoomValue">100% · 전투 시야</span>
+      <button id="zoomInBtn" type="button" aria-label="확대">＋</button>
+      <button id="hqViewBtn" type="button">중앙 본부</button>
+      <button id="focusRegionBtn" type="button" hidden>전투 중심</button>
+      <button id="wholeWorldBtn" type="button">전체 전장</button>
+      <button id="debugWorldBtn" type="button" hidden>디버그</button>
+    </div>
+    <div class="camera-help">휠: 확대·축소 · 드래그: 화면 이동</div>
+    <aside id="territoryPanel" class="territory-panel settlement-overview" aria-label="정착지 운영 현황">
+      <div class="territory-panel__header settlement-overview__header">
+        <div>
+          <strong>정착지 운영</strong>
+          <small>전체 현황</small>
+        </div>
+        <span id="territoryCount">방어 거점</span>
+      </div>
+
+      <div class="overview-resources" aria-label="보유 자원">
+        <div id="fundsResourceItem" class="overview-resource-item">
+          <span>골드</span>
+          <strong id="fundsValue">0</strong>
+        </div>
+        <div id="woodResourceItem" class="overview-resource-item overview-resource-item--wood">
+          <span>목재</span>
+          <strong id="woodValue">0</strong>
+        </div>
+      </div>
+      <small id="resourceHint" class="overview-hint">중앙 본부 주변의 벌목지에서 목재를 확보하세요.</small>
+
+      <div class="overview-population-groups" aria-label="주민 및 군사 인구">
+        <section class="overview-population-card overview-population-card--civilian">
+          <div class="overview-population-card__header">
+            <span>주민 인구</span>
+            <strong id="populationValue">3 / 4</strong>
+          </div>
+          <div class="overview-population-breakdown">
+            <div><span>유휴</span><b id="overviewIdleResidents">3명</b></div>
+            <div><span>벌목</span><b id="overviewLumberWorkers">0명</b></div>
+            <div><span>건설</span><b id="overviewConstructionWorkers">0명</b></div>
+          </div>
+        </section>
+
+        <section class="overview-population-card overview-population-card--military">
+          <div class="overview-population-card__header">
+            <span>군사 인구</span>
+            <strong id="overviewSoldiers">0 / 0</strong>
+          </div>
+          <div class="overview-population-breakdown">
+            <div><span>소총</span><b id="overviewRifleSoldiers">0명</b></div>
+            <div><span>기관총</span><b id="overviewMachineGunSoldiers">0명</b></div>
+            <div><span>방패</span><b id="overviewShieldSoldiers">0명</b></div>
+          </div>
+          <small class="overview-population-note">훈련 완료 즉시 자동 전투 투입</small>
+        </section>
+      </div>
+
+      <div class="territory-stats overview-primary-stats overview-settlement-stats">
+        <span>치안 <b id="securityValue">100</b></span>
+        <span>민심 <b id="supportValue">70</b></span>
+      </div>
+
+      <details class="overview-section" open>
+        <summary>생산 및 진행</summary>
+        <div class="overview-status-list">
+          <div><span>주민 유입</span><b id="overviewResidentArrival">본부 건설 후 시작</b></div>
+          <div><span>벌목</span><b id="overviewLumberStatus">벌목소 미건설</b></div>
+          <div><span>건설</span><b id="overviewConstructionStatus">건설 시스템 미개방</b></div>
+          <div><span>훈련</span><b id="overviewTrainingStatus">훈련소 미건설</b></div>
+        </div>
+      </details>
+
+      <details class="overview-section" open>
+        <summary>방어 현황</summary>
+        <div class="overview-status-list">
+          <div><span>현재 라운드</span><b id="overviewEastStatus">준비 중</b></div>
+          <div><span>적 공격</span><b id="overviewNorthStatus">첫 병사 대기</b></div>
+        </div>
+      </details>
+
+      <details class="overview-section" hidden>
+        <summary>영지 및 세금</summary>
+        <div class="tax-policy" aria-label="세율 선택">
+          <button type="button" data-tax-policy="low">낮음</button>
+          <button type="button" data-tax-policy="normal">보통</button>
+          <button type="button" data-tax-policy="high">높음</button>
+        </div>
+        <div class="tax-summary">
+          <span id="taxEstimate">예상 세금 +0</span>
+          <span id="taxCountdown">5초 후 징수</span>
+        </div>
+        <div id="territoryList" class="territory-list"></div>
+      </details>
+
+      <div class="overview-objective" aria-live="polite">
+        <span>현재 목표</span>
+        <strong id="overviewObjective">정착 본부 주변에서 목재를 확보하세요.</strong>
+      </div>
+    </aside>
+    <div id="tutorialPanel" class="tutorial-panel" aria-live="polite" hidden>
+      <div class="tutorial-panel__eyebrow">초기 정착 튜토리얼</div>
+      <strong id="tutorialTitle">첫 번째 임무 · 목재 확보</strong>
+      <span id="tutorialText">본부 옆 벌목지를 클릭해 목재 5개를 모으세요.</span>
+      <div class="tutorial-progress" aria-label="튜토리얼 진행도">
+        <div id="tutorialProgressBar"></div>
+      </div>
+      <div class="tutorial-panel__footer">
+        <span id="tutorialProgressText">목재 0 / 5</span>
+        <button id="tutorialCompleteBtn" type="button" hidden disabled>주변 지역 개방</button>
+      </div>
+    </div>
+    <div id="lumberPanel" class="lumber-panel" hidden aria-label="벌목소 운영">
+      <div class="lumber-panel__header">
+        <strong>벌목소 Lv.1</strong>
+        <span id="lumberWorkerCount">벌목꾼 0 / 2</span>
+      </div>
+      <div class="lumber-panel__stats">
+        <span>작업 상태 <b id="lumberWorkStatus">대기</b></span>
+        <span>목재 저장 <b id="lumberStorageText">0 · 무제한</b></span>
+      </div>
+      <div class="lumber-storage" aria-label="벌목소 저장량 제한 없음" hidden>
+        <div id="lumberStorageBar"></div>
+      </div>
+      <button id="hireLumberWorkerBtn" type="button" disabled>벌목꾼 고용 · 목재 10</button>
+      <small id="lumberHint">벌목꾼이 숲과 벌목소를 자동으로 왕복합니다.</small>
+    </div>
+    <div id="constructionPanel" class="construction-panel" hidden aria-label="정착지 건설">
+      <div class="construction-panel__header">
+        <strong>건설</strong>
+        <span id="constructionStatus">작업소 준비</span>
+      </div>
+      <button id="placeWorkshopBtn" type="button">건설 작업소 · 목재 12</button>
+      <button id="placeTrainingCenterBtn" type="button" hidden>훈련소 · 목재 18</button>
+      <button id="cancelPlacementBtn" type="button" hidden>배치 취소</button>
+      <small id="constructionHint">건물을 선택하면 정착지 격자가 표시됩니다.</small>
+    </div>
+    <div id="buildingManagePanel" class="building-manage-panel" hidden aria-label="건물 관리">
+      <div class="building-manage-panel__header">
+        <div>
+          <strong id="buildingManageTitle">건물 관리</strong>
+          <span id="buildingManageLevel">Lv.1</span>
+        </div>
+        <button id="buildingManageCloseBtn" type="button" aria-label="건물 관리 닫기">×</button>
+      </div>
+      <p id="buildingManageDescription"></p>
+      <div class="building-manage-panel__stats">
+        <span id="buildingManageWorkerLabel">인력</span>
+        <b id="buildingManageWorkerCount">0 / 0</b>
+      </div>
+      <small id="buildingManageEffect"></small>
+      <button id="buildingManageHireBtn" type="button">인력 고용</button>
+      <button id="buildingManageAutoBtn" type="button" hidden>자동 생산 ON</button>
+      <button id="buildingManageDeployBtn" type="button" hidden>자동 전투</button>
+      <button id="buildingManageUpgradeBtn" type="button">건물 업그레이드</button>
+      <small id="buildingManageHint"></small>
+    </div>
+    <aside id="soldierUpgradePanel" class="soldier-upgrade-panel" aria-label="병사 업그레이드" hidden>
+      <div class="soldier-upgrade-panel__header">
+        <div>
+          <strong>병사 업그레이드</strong>
+          <small>적 처치 골드로 모든 병사를 강화합니다.</small>
+        </div>
+        <span>골드 <b id="upgradeGoldValue">0</b></span>
+      </div>
+      <button id="upgradeAttackBtn" type="button">
+        <span><b>화력 강화</b><small>모든 병사 공격력 증가</small></span>
+        <strong id="upgradeAttackCost">Lv.0 · 25</strong>
+      </button>
+      <button id="upgradeHealthBtn" type="button">
+        <span><b>방탄 장비</b><small>모든 병사 최대 체력 증가</small></span>
+        <strong id="upgradeHealthCost">Lv.0 · 30</strong>
+      </button>
+      <button id="upgradeFireRateBtn" type="button">
+        <span><b>사격 훈련</b><small>연사·재장전 속도 증가</small></span>
+        <strong id="upgradeFireRateCost">Lv.0 · 40</strong>
+      </button>
+      <button id="startNextWaveBtn" class="soldier-upgrade-panel__next" type="button" hidden>다음 라운드 즉시 시작</button>
+    </aside>
+
+    <div id="captureTransitionPanel" class="capture-panel" hidden>
+      <strong>첫 전초기지 확보</strong>
+      <span id="captureRewardText">점령 보상: 군자금 +0</span>
+      <span>점령지를 확보하면 군자금으로 병영을 건설할 수 있습니다.</span>
+      <button id="captureContinueBtn" type="button">점령지 확보 완료</button>
+    </div>
+    <div id="barracksPanel" class="barracks-panel" hidden>
+      <strong>점령지 건설</strong>
+      <span>점령지 병영은 군자금을 사용해 전선 병력을 추가로 자동 충원합니다.</span>
+      <button id="buildBarracksBtn" type="button">병영 건설 · 100</button>
+      <button id="autoProductionBtn" type="button" hidden>자동 생산 ON</button>
+      <div id="productionProgress" class="production-progress" hidden>
+        <div id="productionProgressBar"></div>
+      </div>
+      <span id="barracksStatus" class="barracks-status"></span>
+    </div>
+    <div id="worldDeployPanel" class="world-deploy-panel" aria-label="전체 지도 병력 배치" hidden>
+      <div class="world-deploy-panel__header">
+        <div>
+          <strong>본부 대기 병력 배치</strong>
+          <small>보낼 인원을 고른 뒤 지도에서 목적지를 누르세요.</small>
+        </div>
+        <span id="worldDeployReserveCount">0명</span>
+      </div>
+      <div class="world-deploy-panel__amounts" aria-label="배치 인원 선택">
+        <button id="worldDeployOneBtn" type="button">1명</button>
+        <button id="worldDeployHalfBtn" type="button">절반</button>
+        <button id="worldDeployAllBtn" type="button">전부</button>
+      </div>
+      <div class="world-deploy-panel__selected">
+        <span>선택 병력</span>
+        <b id="worldDeploySelectedCount">0명</b>
+      </div>
+      <strong id="worldDeployHint" class="world-deploy-panel__hint">빛나는 지역을 누르세요.</strong>
+      <button id="worldDeployCancelBtn" class="world-deploy-panel__cancel" type="button">배치 취소</button>
+    </div>
+    <div id="ui-layer" hidden>
+      <button id="spawnRiflemanBtn" type="button">소총병 생산 · 20</button>
+    </div>
+  </div>
+
+  <!-- 스크립트 로드 순서 중요: 상속 관계상 부모 클래스가 먼저 로드되어야 함 -->
+  <script src="image-assets.js"></script>
+  <script src="visual-config.js"></script>
+  <script src="entity.js"></script>
+  <script src="render-system.js"></script>
+  <script src="worker.js"></script>
+  <script src="base.js"></script>
+  <script src="soldier.js"></script>
+  <script src="building.js"></script>
+  <script src="bullet.js"></script>
+  <script src="strategic-world.js"></script>
+  <script src="wave-defense.js"></script>
+  <script src="game.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
