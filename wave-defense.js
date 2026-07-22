@@ -187,18 +187,18 @@ class WaveDefenseSystem {
     const responseRatio = Math.min(1.75, 0.45 + Math.max(0, safeRound - 1) * 0.13);
     const responseCount = Math.ceil(projectedArmy * responseRatio);
     const eliteCount = safeRound % 5 === 0 ? Math.min(4, 1 + Math.floor(safeRound / 10)) : 0;
-    const rawEnemyCount = Math.max(baseCount, responseCount) + eliteCount;
+    const rawEnemyCount = Math.ceil((Math.max(baseCount, responseCount) + eliteCount) * 1.5);
 
     // 화면 객체 수는 제한하고, 초과한 전력은 적 체력/공격력으로 압축한다.
-    const enemyCountCap = 160;
-    const enemyCount = Math.max(4, Math.min(enemyCountCap, rawEnemyCount));
+    const enemyCountCap = 220;
+    const enemyCount = Math.max(6, Math.min(enemyCountCap, rawEnemyCount));
     const overflow = Math.max(0, rawEnemyCount - enemyCountCap);
     const overflowPower = 1 + (overflow / enemyCountCap) * 0.65;
     const trainingPressure = 1 + Math.max(0, trainingLevel - 1) * 0.025;
     const powerMultiplier = overflowPower * trainingPressure;
     const burstSize = Math.min(
-      6,
-      1 + Math.floor(Math.max(0, safeRound - 1) / 3) + (eliteCount > 0 ? 1 : 0)
+      8,
+      2 + Math.floor(Math.max(0, safeRound - 1) / 3) + (eliteCount > 0 ? 1 : 0)
     );
 
     return {
@@ -218,7 +218,7 @@ class WaveDefenseSystem {
 
   _getSpawnInterval() {
     // 한 명씩 길게 줄 세우지 않고 짧은 간격의 공세 단위로 동시에 밀어 넣는다.
-    return Math.max(0.55, 1.35 * Math.pow(0.97, Math.max(0, this.round - 1)));
+    return Math.max(0.45, 1.05 * Math.pow(0.97, Math.max(0, this.round - 1)));
   }
 
   _getEnemyStrength(round = this.round) {

@@ -99,6 +99,10 @@ const SOLDIER_COMBAT_CONFIG = {
   TARGET_SWITCH_RATIO: 0.88, // 새 적이 약 12% 이상 가까우면 표적을 교체한다.
   CLOSE_THREAT_RANGE_MULTIPLIER: 1.6, // 공격 사거리 주변을 지나가는 적은 즉시 위협으로 판단한다.
   CLOSE_THREAT_SWITCH_RATIO: 0.94, // 근거리에서는 작은 거리 차이만 있어도 더 가까운 적을 우선한다.
+  TARGET_MEMORY_PADDING: 55, // 탐지 경계에서 표적이 반복 해제되어 사격이 끊기지 않도록 여유를 둔다.
+  TARGET_SATURATION_PENALTY: 72, // 같은 적에게 아군이 과도하게 몰릴 때 다른 표적으로 분산한다.
+  BASE_THREAT_WEIGHT: 0.72, // 본부에 가까운 적을 우선하여 기지 방어가 비지 않게 한다.
+  INNER_GUARD_RADIUS: 360, // 일부 병력은 본부 주변을 벗어나지 않는 상시 방어대로 유지한다.
 };
 
 /**
@@ -248,6 +252,8 @@ class Soldier extends Entity {
     // 훈련소에서 나온 아군은 전장 전체에서 가장 가까운 적을 찾는다.
     // 적이 없을 때는 자신의 방어 대기 위치로 이동한다.
     this.globalEnemySearch = Boolean(options.globalEnemySearch);
+    this.defenseCenter = options.defenseCenter ? { ...options.defenseCenter } : null;
+    this.innerGuard = Boolean(options.innerGuard);
 
     // 기존 가로 전용 directionSign 대신 실제 이동 방향 벡터를 사용한다.
     this.routeX = 1;
@@ -460,9 +466,8 @@ class Soldier extends Entity {
 
       if (distanceToTarget <= this.attackRange) {
         // Attack Range 안 - 멈추고 조준한다. 공격(피격)은 아직 구현하지 않는다.
-        if (!wasAiming) {
-          this.fireTimer = 0; // 새로 조준을 시작하면 연사 Timer를 초기화
-        }
+        // 사거리 경계에서 AIMING/MOVING이 짧게 바뀌더라도 연사 누적값을 유지한다.
+        // 그래야 다시 조준할 때 매번 처음부터 기다리며 공격이 끊겨 보이지 않는다.
         this.state = SOLDIER_STATE.AIMING;
         this._updateFireTimer(deltaTime, game);
         return;
@@ -565,7 +570,9 @@ class Soldier extends Entity {
     this.ammo = Math.max(0, this.ammo - 1);
     if (this.ammo <= 0) {
       this.isReloading = true;
-      this.isResupplying = Boolean(this.homeBase?.isActive && !this.homeBase?.isDestroyed);
+      // 전투 도중 탄약이 떨어졌다고 기지까지 집단 복귀하면 방어선이 한꺼번에 비게 된다.
+      // 양 진영 모두 현재 위치에서 재장전하도록 통일한다.
+      this.isResupplying = false;
       this.resupplyAtBase = false;
       this.reloadTimer = 0;
     }
@@ -616,7 +623,6 @@ class Soldier extends Entity {
       if (shouldSwitchCloseThreat) {
         this.target = immediateTarget;
         this.targetSearchTimer = 0;
-        this.fireTimer = 0;
         return;
       }
     }
@@ -629,7 +635,6 @@ class Soldier extends Entity {
       if (nearbySoldier) {
         this.target = nearbySoldier;
         this.targetSearchTimer = 0;
-        this.fireTimer = 0;
         return;
       }
     }
@@ -644,7 +649,6 @@ class Soldier extends Entity {
           const nearerDistance = this._surfaceDistanceTo(nearer);
           if (nearerDistance < currentDistance * SOLDIER_COMBAT_CONFIG.TARGET_SWITCH_RATIO) {
             this.target = nearer;
-            this.fireTimer = 0;
           }
         }
       }
@@ -697,7 +701,8 @@ class Soldier extends Entity {
       if (
         requireDetectionRange &&
         !this.globalEnemySearch &&
-        this._surfaceDistanceTo(target) > SOLDIER_COMBAT_CONFIG.DETECTION_RANGE
+        this._surfaceDistanceTo(target) >
+          SOLDIER_COMBAT_CONFIG.DETECTION_RANGE + SOLDIER_COMBAT_CONFIG.TARGET_MEMORY_PADDING
       ) {
         return false;
       }
@@ -744,7 +749,7 @@ class Soldier extends Entity {
    */
   _findNearestEnemy(entities, maxRange) {
     let nearest = null;
-    let minDistance = Infinity;
+    let bestScore = Infinity;
 
     for (const other of entities) {
       if (
@@ -758,8 +763,31 @@ class Soldier extends Entity {
       }
 
       const distance = this._surfaceDistanceTo(other);
-      if (distance <= maxRange && distance < minDistance) {
-        minDistance = distance;
+      if (distance > maxRange) continue;
+
+      let score = distance;
+      if (this.defenseCenter && this.frontId === "arena") {
+        const baseDistance = Math.hypot(
+          other.x - this.defenseCenter.x,
+          other.y - this.defenseCenter.y
+        );
+
+        // 3명 중 약 1명은 본부 주변 상시 방어대로 남는다. 먼 적을 쫓아 전 병력이
+        // 한쪽으로 몰리는 대신, 적이 방어권 안에 들어오면 즉시 요격한다.
+        if (this.innerGuard && baseDistance > SOLDIER_COMBAT_CONFIG.INNER_GUARD_RADIUS) {
+          continue;
+        }
+
+        const assignedAttackers = Number.isFinite(other.assignedAttackerCount)
+          ? other.assignedAttackerCount
+          : 0;
+
+        score += baseDistance * SOLDIER_COMBAT_CONFIG.BASE_THREAT_WEIGHT;
+        score += assignedAttackers * SOLDIER_COMBAT_CONFIG.TARGET_SATURATION_PENALTY;
+      }
+
+      if (score < bestScore) {
+        bestScore = score;
         nearest = other;
       }
     }

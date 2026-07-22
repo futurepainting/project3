@@ -2075,6 +2075,8 @@ class Game {
         laneOffset: 0,
         awaitingOrder: false,
         globalEnemySearch: true,
+        defenseCenter: { x: this.hqBase.x, y: this.hqBase.y },
+        innerGuard: defenseSlotIndex % 3 === 0,
       }
     );
     soldier.defenseAnchor = anchor;
@@ -2102,6 +2104,10 @@ class Game {
       this.waveDefense?.applyUpgradesToSoldier?.(soldier);
       soldier.awaitingOrder = false;
       soldier.globalEnemySearch = true;
+      soldier.defenseCenter = { x: this.hqBase.x, y: this.hqBase.y };
+      soldier.innerGuard = Number.isInteger(soldier.defenseSlotIndex)
+        ? soldier.defenseSlotIndex % 3 === 0
+        : false;
       soldier.frontId = "arena";
       soldier.homeBase = this.trainingCenter || this.hqBase;
       if (!soldier.defenseAnchor) {
@@ -2113,6 +2119,9 @@ class Game {
         soldier.defenseAnchor = anchor;
         soldier.setTargetBase(anchor, soldier.homeBase);
       }
+      soldier.innerGuard = Number.isInteger(soldier.defenseSlotIndex)
+        ? soldier.defenseSlotIndex % 3 === 0
+        : false;
     });
     return friendlies.length;
   }
@@ -2524,6 +2533,16 @@ class Game {
     const arenaSoldiers = this.soldiers.filter((soldier) =>
       soldier.isActive && !soldier.isDead && soldier.frontId === "arena"
     );
+
+    // 표적별 현재 담당 병력 수를 한 번만 집계해, 다수 병사가 같은 적 하나에
+    // 몰리는 현상을 줄이면서도 매 병사 탐색 때 전체 배열을 반복 계산하지 않는다.
+    for (const soldier of arenaSoldiers) soldier.assignedAttackerCount = 0;
+    for (const soldier of arenaSoldiers) {
+      const target = soldier.target;
+      if (target instanceof Soldier && target.isActive && !target.isDead) {
+        target.assignedAttackerCount = (target.assignedAttackerCount || 0) + 1;
+      }
+    }
     for (const soldier of this.soldiers) {
       if (!this._shouldSimulateSoldier(soldier)) continue;
       const wasMarching = soldier.deploymentMarchActive;
