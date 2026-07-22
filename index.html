@@ -1,288 +1,1533 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Mini War - 라운드 방어</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>거점 방어전</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b10; --panel:#121822; --panel2:#161f2b; --panel-line:#22303f;
+    --gold:#e8a33d; --ally:#4fa3e3; --enemy:#e0483f; --hp:#3fbf7f;
+    --text:#e7ecf1; --muted:#7d8ba0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:'Rajdhani',sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;}
+  #wrap{position:relative;width:100%;height:100vh;min-height:600px;display:flex;flex-direction:column;}
+
+  /* ---------- battle HUD ---------- */
+  #hud{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;
+    background:linear-gradient(180deg,#0d1219,#0a0e13);border-bottom:1px solid var(--panel-line);
+    z-index:5;flex-wrap:wrap;gap:8px;}
+  .hud-title{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;color:var(--gold);
+    font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+  .hud-title:before{content:'';width:8px;height:8px;background:var(--gold);display:inline-block;
+    box-shadow:0 0 8px var(--gold);animation:blink 1.6s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .stat-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .stat{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05;}
+  .stat .label{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .stat .value{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;}
+  .value.gold{color:var(--gold);} .value.time{color:var(--hp);} .value.time.low{color:var(--enemy);}
+
+  #gameScreen{display:none;flex-direction:column;flex:1;min-height:0;}
+  #gameScreen.active{display:flex;}
+  #roundBar{position:absolute;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.08);z-index:6;}
+  #roundBarFill{height:100%;width:100%;background:linear-gradient(90deg,#3fbf7f,#e8a33d);transition:width .2s linear, background .3s;}
+  #stage{position:relative;flex:1;overflow:hidden;}
+  canvas{display:block;width:100%;height:100%;cursor:pointer;}
+  #hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);
+    letter-spacing:.5px;background:rgba(10,14,19,.6);padding:5px 12px;border:1px solid var(--panel-line);
+    border-radius:2px;pointer-events:none;z-index:4;text-align:center;max-width:90%;}
+
+  #cmdBtn{position:absolute;right:14px;top:14px;z-index:7;font-family:'Orbitron',sans-serif;font-size:11px;
+    letter-spacing:1px;background:linear-gradient(180deg,#1c2732,#131b24);border:1px solid var(--ally);
+    color:var(--ally);padding:8px 12px;border-radius:4px;cursor:pointer;display:none;
+    animation:cmdPulse 1.4s ease-in-out infinite;}
+  #cmdBtn.show{display:block;}
+  @keyframes cmdPulse{0%,100%{box-shadow:0 0 0 rgba(79,163,227,0);}50%{box-shadow:0 0 10px rgba(79,163,227,.7);}}
+  #cmdPanel{position:absolute;right:14px;top:56px;z-index:7;background:var(--panel);border:1px solid var(--ally);
+    border-radius:6px;padding:10px;width:220px;display:none;}
+  #cmdPanel.show{display:block;}
+  #cmdPanel .cmd-title{font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;}
+  #cmdPanel .cmd-bar{height:3px;background:#1b2530;border-radius:2px;overflow:hidden;margin-bottom:8px;}
+  #cmdPanel .cmd-bar-fill{height:100%;background:var(--ally);width:100%;}
+  #cmdPanel button{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--panel-line);
+    color:var(--text);padding:8px;margin-bottom:6px;border-radius:4px;cursor:pointer;font-family:'Rajdhani',sans-serif;
+    font-size:12.5px;font-weight:600;}
+  #cmdPanel button:hover{border-color:var(--ally);}
+  #cmdPanel button b{display:block;font-size:13px;color:var(--ally);margin-bottom:2px;}
+
+  #overlay{position:absolute;inset:0;background:rgba(6,9,13,.9);display:none;align-items:center;justify-content:center;
+    flex-direction:column;z-index:10;text-align:center;gap:12px;}
+  #overlay.show{display:flex;}
+  #overlay h1{font-family:'Orbitron',sans-serif;letter-spacing:3px;font-size:28px;margin:0;}
+  #overlay .stats{color:var(--muted);font-size:14px;letter-spacing:1px;}
+  #overlay .stats b{color:var(--text);}
+  #overlay .gold-earn{font-family:'Orbitron',sans-serif;color:var(--gold);font-size:20px;font-weight:700;
+    text-shadow:0 0 14px rgba(232,163,61,.5);display:flex;align-items:center;gap:8px;}
+  #overlay .gold-earn small{font-family:'Rajdhani',sans-serif;font-size:12px;color:var(--muted);font-weight:600;}
+  #lobbyBtn{font-family:'Orbitron',sans-serif;background:var(--gold);color:#1a1305;border:none;padding:11px 26px;
+    font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;border-radius:2px;margin-top:6px;}
+  #lobbyBtn:hover{filter:brightness(1.1);}
+
+  .warn-banner{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);z-index:8;
+    font-family:'Orbitron',sans-serif;color:var(--enemy);font-size:22px;letter-spacing:2px;font-weight:900;
+    text-shadow:0 0 16px rgba(224,72,63,.8);pointer-events:none;opacity:0;}
+  .warn-banner.show{animation:warnFlash 2s ease-out forwards;}
+  @keyframes warnFlash{0%{opacity:0;transform:translate(-50%,-60%) scale(.8);}15%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    80%{opacity:1;}100%{opacity:0;}}
+
+  /* ---------- lobby: 가지형 스킬트리 ---------- */
+  #lobbyScreen{display:none;flex:1;min-height:0;flex-direction:column;overflow:hidden;}
+  #lobbyScreen.active{display:flex;}
+  #opTopBar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--panel-line);
+    background:linear-gradient(180deg,#0d1219,#0a0e13);z-index:5;}
+  #opTopBar h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;margin:0;white-space:nowrap;}
+  #opTopStats{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  #opTopStats .stat .value{font-size:14px;}
+  #startRoundBtn{font-family:'Orbitron',sans-serif;background:linear-gradient(180deg,#ffcf7a,var(--gold));
+    color:#1a1305;border:none;padding:10px 20px;font-size:13px;font-weight:900;letter-spacing:2px;cursor:pointer;
+    border-radius:3px;box-shadow:0 0 16px rgba(232,163,61,.3);white-space:nowrap;}
+  #startRoundBtn:hover{filter:brightness(1.08);}
+
+  #treeViewport{flex:1;min-height:0;position:relative;overflow:hidden;background:#080b10;touch-action:none;cursor:grab;}
+  #treeViewport.grabbing{cursor:grabbing;}
+  #treeSvgWrap{position:absolute;top:0;left:0;transform-origin:0 0;}
+  #treeSvg{display:block;}
+
+  #toast{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;
+    background:rgba(18,24,34,.92);border:1px solid var(--gold);color:var(--gold);padding:8px 16px;
+    border-radius:4px;font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:1px;
+    opacity:0;pointer-events:none;white-space:nowrap;}
+  #toast.show{animation:toastPop 1.8s ease-out forwards;}
+  @keyframes toastPop{0%{opacity:0;transform:translateX(-50%) translateY(-6px);}12%{opacity:1;transform:translateX(-50%) translateY(0);}
+    80%{opacity:1;}100%{opacity:0;}}
+
+  #zoomControls{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:6;}
+  #zoomControls button{width:34px;height:34px;border-radius:4px;border:1px solid var(--panel-line);
+    background:rgba(18,24,34,.85);color:var(--text);font-size:16px;cursor:pointer;font-family:'Orbitron',sans-serif;}
+  #zoomControls button:hover{border-color:var(--gold);color:var(--gold);}
+
+  .tr-edge{stroke:#e8a33d;stroke-width:2;fill:none;pointer-events:none;opacity:.35;}
+  .tr-edge.owned{opacity:.95;}
+  .tr-edge.reveal-anim{animation:edgeReveal .5s ease-out;}
+  @keyframes edgeReveal{0%{opacity:0;}50%{opacity:1;filter:drop-shadow(0 0 4px #e8a33d);}100%{opacity:.95;}}
+
+  .sk-node{cursor:pointer;}
+  .sk-node .box{stroke-width:2;transition:filter .15s;}
+  .sk-node .icon-t{font-size:17px;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}
+  .sk-node .lvl-t{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;fill:#fff;text-anchor:middle;pointer-events:none;}
+  .sk-node.state-locked .lvl-t{fill:var(--muted);}
+  .sk-node .name-t{font-family:'Rajdhani',sans-serif;font-size:10.5px;font-weight:700;fill:var(--text);text-anchor:middle;pointer-events:none;}
+  .sk-node .max-ring{fill:none;stroke:#fff;stroke-width:1.4;opacity:.85;}
+  .sk-node.reveal-anim{animation:childReveal .35s ease-out;}
+  @keyframes childReveal{0%{opacity:0;transform:scale(.6);}100%{opacity:1;transform:scale(1);}}
+  .sk-node.unlock-pop .box{animation:unlockPop .4s ease-out;}
+  @keyframes unlockPop{0%{filter:drop-shadow(0 0 0 #fff);}40%{filter:drop-shadow(0 0 10px #fff);}100%{filter:drop-shadow(0 0 0 #fff);}}
+  .sk-node.level-flash .box{animation:levelFlash .35s ease-out;}
+  @keyframes levelFlash{0%{filter:drop-shadow(0 0 0 #e8a33d);}50%{filter:drop-shadow(0 0 8px #e8a33d);}100%{filter:drop-shadow(0 0 0 #e8a33d);}}
+
+  /* ---------- detail panel ---------- */
+  #skillPanel{position:fixed;right:14px;bottom:14px;width:280px;max-height:60vh;overflow-y:auto;
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:8px;padding:14px;
+    display:none;flex-direction:column;gap:10px;z-index:9;box-shadow:0 8px 26px rgba(0,0,0,.5);
+    pointer-events:none;}
+  #skillPanel.open{display:flex;}
+  #skillPanel .p-close{display:none;}
+  #skillPanel .p-head{display:flex;align-items:center;gap:10px;}
+  #skillPanel .p-name{font-weight:700;font-size:15px;}
+  #skillPanel .p-desc{font-size:11.5px;color:var(--muted);line-height:1.4;}
+  #skillPanel .p-lvl{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--gold);margin-top:2px;}
+  #skillPanel .p-effect{background:var(--panel2);border-radius:4px;padding:9px 10px;font-size:13px;line-height:1.4;}
+  #skillPanel .p-effect .change{color:var(--text);font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:.2px;}
+  #skillPanel .p-effect .change .from{color:var(--hp);}
+  #skillPanel .p-effect .change .arrow{color:var(--muted);padding:0 7px;}
+  #skillPanel .p-effect .change .to{color:var(--ally);}
+  #skillPanel .p-reason{font-size:12px;color:var(--gold);background:rgba(232,163,61,.08);
+    border:1px solid rgba(232,163,61,.42);padding:8px;border-radius:4px;line-height:1.5;}
+  #skillPanel .p-buy{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(180deg,#2a1f14,#1a1305);
+    border:1px solid var(--gold);color:var(--gold);padding:10px;cursor:pointer;border-radius:4px;}
+  #skillPanel .p-buy:disabled{opacity:.35;cursor:not-allowed;border-color:var(--muted);color:var(--muted);}
+  #skillPanel .p-max{font-family:'Orbitron',sans-serif;color:#fff;background:#2a3a2c;border:1px solid var(--hp);
+    padding:10px;text-align:center;border-radius:4px;font-size:13px;}
+
+  @media (max-width:760px){
+    #skillPanel{left:0;right:0;bottom:0;width:auto;max-height:50vh;border-radius:10px 10px 0 0;}
+  }
+</style>
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
-    <section id="worldStatusBar" class="world-status-bar wave-status-bar" aria-label="라운드 방어 현황">
-      <span>라운드 <b id="worldFriendlyCount">0</b></span>
-      <span>남은 적 <b id="worldEnemyCount">0</b></span>
-      <span>누적 처치 <b id="worldReserveCount">0</b></span>
-      <span>골드 <b id="worldBattleCount">0</b></span>
-      <span>다음 공격 <b id="worldSupplyValue">대기</b></span>
-      <span class="world-status-bar__mode" id="worldViewMode">방어 준비</span>
-    </section>
-    <button id="mobileOverviewToggle" class="mobile-overview-toggle" type="button" aria-controls="territoryPanel" aria-expanded="false">운영</button>
-    <aside id="worldRegionPanel" class="world-region-panel" aria-label="선택 지역 정보" hidden>
-      <div class="world-region-panel__header">
-        <div><small>선택 지역</small><strong id="worldRegionName">중앙 전선</strong></div>
-        <span id="worldRegionOwner">아군</span>
-      </div>
-      <div class="world-region-panel__grid">
-        <span>지형 <b id="worldRegionTerrain">평야</b></span>
-        <span>보급 <b id="worldRegionSupply">0</b></span>
-        <span>아군 <b id="worldRegionFriendly">0</b></span>
-        <span>적군 <b id="worldRegionEnemy">0</b></span>
-        <span>전투 <b id="worldRegionBattle">대기</b></span>
-        <span>위험 <b id="worldRegionDanger">낮음</b></span>
-      </div>
-      <small id="worldRegionPrecisionType" class="world-region-panel__note">중앙 본부 정밀 화면</small>
-      <div class="world-region-panel__actions">
-        <button id="worldRegionDeployBtn" type="button" hidden>대기 병력 배치</button>
-        <button id="worldRegionFocusBtn" type="button">전술 확대</button>
-        <button id="worldRegionEnterBtn" type="button">정밀 전투 진입</button>
-      </div>
-    </aside>
-    <button id="worldBackBtn" class="world-back-button" type="button" hidden>← 전략 지도로 복귀</button>
-    <aside id="worldDebugPanel" class="world-debug-panel" hidden aria-label="개발자 표시">
-      <strong>WORLD DEBUG</strong>
-      <pre id="worldDebugText"></pre>
-    </aside>
-    <div id="regionHud" class="region-hud" hidden>지역 1 / 2</div>
-    <div id="regionControls" class="region-controls" aria-label="지역 이동" hidden>
-      <button id="region1Btn" type="button">지역 1</button>
-      <button id="region2Btn" type="button" disabled>지역 2</button>
-      <button id="advanceRegionBtn" type="button" hidden>다음 전선 출격</button>
-    </div>
-    <div id="cameraControls" class="camera-controls" aria-label="카메라 조작">
-      <button id="zoomOutBtn" type="button" aria-label="축소">−</button>
-      <span id="zoomValue">100% · 전투 시야</span>
-      <button id="zoomInBtn" type="button" aria-label="확대">＋</button>
-      <button id="hqViewBtn" type="button">중앙 본부</button>
-      <button id="focusRegionBtn" type="button" hidden>전투 중심</button>
-      <button id="wholeWorldBtn" type="button">전체 전장</button>
-      <button id="debugWorldBtn" type="button" hidden>디버그</button>
-    </div>
-    <div class="camera-help">휠: 확대·축소 · 드래그: 화면 이동</div>
-    <aside id="territoryPanel" class="territory-panel settlement-overview" aria-label="정착지 운영 현황">
-      <div class="territory-panel__header settlement-overview__header">
-        <div>
-          <strong>정착지 운영</strong>
-          <small>전체 현황</small>
-        </div>
-        <span id="territoryCount">방어 거점</span>
-      </div>
+<div id="wrap">
 
-      <div class="overview-resources" aria-label="보유 자원">
-        <div id="fundsResourceItem" class="overview-resource-item">
-          <span>골드</span>
-          <strong id="fundsValue">0</strong>
-        </div>
-        <div id="woodResourceItem" class="overview-resource-item overview-resource-item--wood">
-          <span>목재</span>
-          <strong id="woodValue">0</strong>
-        </div>
-      </div>
-      <small id="resourceHint" class="overview-hint">중앙 본부 주변의 벌목지에서 목재를 확보하세요.</small>
-
-      <div class="overview-population-groups" aria-label="주민 및 군사 인구">
-        <section class="overview-population-card overview-population-card--civilian">
-          <div class="overview-population-card__header">
-            <span>주민 인구</span>
-            <strong id="populationValue">3 / 4</strong>
-          </div>
-          <div class="overview-population-breakdown">
-            <div><span>유휴</span><b id="overviewIdleResidents">3명</b></div>
-            <div><span>벌목</span><b id="overviewLumberWorkers">0명</b></div>
-            <div><span>건설</span><b id="overviewConstructionWorkers">0명</b></div>
-          </div>
-        </section>
-
-        <section class="overview-population-card overview-population-card--military">
-          <div class="overview-population-card__header">
-            <span>군사 인구</span>
-            <strong id="overviewSoldiers">0 / 0</strong>
-          </div>
-          <div class="overview-population-breakdown">
-            <div><span>소총</span><b id="overviewRifleSoldiers">0명</b></div>
-            <div><span>기관총</span><b id="overviewMachineGunSoldiers">0명</b></div>
-            <div><span>방패</span><b id="overviewShieldSoldiers">0명</b></div>
-          </div>
-          <small class="overview-population-note">훈련 완료 즉시 자동 전투 투입</small>
-        </section>
-      </div>
-
-      <div class="territory-stats overview-primary-stats overview-settlement-stats">
-        <span>치안 <b id="securityValue">100</b></span>
-        <span>민심 <b id="supportValue">70</b></span>
-      </div>
-
-      <details class="overview-section" open>
-        <summary>생산 및 진행</summary>
-        <div class="overview-status-list">
-          <div><span>주민 유입</span><b id="overviewResidentArrival">본부 건설 후 시작</b></div>
-          <div><span>벌목</span><b id="overviewLumberStatus">벌목소 미건설</b></div>
-          <div><span>건설</span><b id="overviewConstructionStatus">건설 시스템 미개방</b></div>
-          <div><span>훈련</span><b id="overviewTrainingStatus">훈련소 미건설</b></div>
-        </div>
-      </details>
-
-      <details class="overview-section" open>
-        <summary>방어 현황</summary>
-        <div class="overview-status-list">
-          <div><span>현재 라운드</span><b id="overviewEastStatus">준비 중</b></div>
-          <div><span>적 공격</span><b id="overviewNorthStatus">첫 병사 대기</b></div>
-        </div>
-      </details>
-
-      <details class="overview-section" hidden>
-        <summary>영지 및 세금</summary>
-        <div class="tax-policy" aria-label="세율 선택">
-          <button type="button" data-tax-policy="low">낮음</button>
-          <button type="button" data-tax-policy="normal">보통</button>
-          <button type="button" data-tax-policy="high">높음</button>
-        </div>
-        <div class="tax-summary">
-          <span id="taxEstimate">예상 세금 +0</span>
-          <span id="taxCountdown">5초 후 징수</span>
-        </div>
-        <div id="territoryList" class="territory-list"></div>
-      </details>
-
-      <div class="overview-objective" aria-live="polite">
-        <span>현재 목표</span>
-        <strong id="overviewObjective">정착 본부 주변에서 목재를 확보하세요.</strong>
-      </div>
-    </aside>
-    <div id="tutorialPanel" class="tutorial-panel" aria-live="polite" hidden>
-      <div class="tutorial-panel__eyebrow">초기 정착 튜토리얼</div>
-      <strong id="tutorialTitle">첫 번째 임무 · 목재 확보</strong>
-      <span id="tutorialText">본부 옆 벌목지를 클릭해 목재 5개를 모으세요.</span>
-      <div class="tutorial-progress" aria-label="튜토리얼 진행도">
-        <div id="tutorialProgressBar"></div>
-      </div>
-      <div class="tutorial-panel__footer">
-        <span id="tutorialProgressText">목재 0 / 5</span>
-        <button id="tutorialCompleteBtn" type="button" hidden disabled>주변 지역 개방</button>
+  <div id="gameScreen">
+    <div id="hud">
+      <div class="hud-title">거점 방어 사령부</div>
+      <div class="stat-row">
+        <div class="stat"><span class="label">골드</span><span class="value gold" id="goldVal">0</span></div>
+        <div class="stat"><span class="label">남은 시간</span><span class="value time" id="timeVal">00:00</span></div>
+        <div class="stat"><span class="label">웨이브</span><span class="value" id="waveVal">1</span></div>
+        <div class="stat"><span class="label">병력</span><span class="value" id="troopVal">0</span></div>
       </div>
     </div>
-    <div id="lumberPanel" class="lumber-panel" hidden aria-label="벌목소 운영">
-      <div class="lumber-panel__header">
-        <strong>벌목소 Lv.1</strong>
-        <span id="lumberWorkerCount">벌목꾼 0 / 2</span>
+    <div id="stage">
+      <div id="roundBar"><div id="roundBarFill"></div></div>
+      <canvas id="game"></canvas>
+      <div class="warn-banner" id="warnBanner"></div>
+      <button id="cmdBtn">⚡ 지휘 명령 가능</button>
+      <div id="cmdPanel">
+        <div class="cmd-title">명령 하나를 선택하세요</div>
+        <div class="cmd-bar"><div class="cmd-bar-fill" id="cmdBarFill"></div></div>
+        <div id="cmdChoices"></div>
       </div>
-      <div class="lumber-panel__stats">
-        <span>작업 상태 <b id="lumberWorkStatus">대기</b></span>
-        <span>목재 저장 <b id="lumberStorageText">0 · 무제한</b></span>
+      <div id="hint">기지를 누르고 있으면 병사 연속 소환 · 동전 위로 커서를 옮겨 골드 획득</div>
+      <div id="overlay">
+        <h1 id="overlayTitle">라운드 종료</h1>
+        <div class="stats">생존 시간 <b id="finalTime">0</b>초 · 도달 웨이브 <b id="finalWave">1</b> · 처치 <b id="finalKills">0</b></div>
+        <div class="gold-earn"><span>🪙</span><span id="goldEarnedEl">0</span> 골드 정산<small><span id="roundRewardNoteEl">수집 0</span> · 보유 <span id="goldBankedEl">0</span></small></div>
+        <button id="lobbyBtn">로비로 이동</button>
       </div>
-      <div class="lumber-storage" aria-label="벌목소 저장량 제한 없음" hidden>
-        <div id="lumberStorageBar"></div>
-      </div>
-      <button id="hireLumberWorkerBtn" type="button" disabled>벌목꾼 고용 · 목재 10</button>
-      <small id="lumberHint">벌목꾼이 숲과 벌목소를 자동으로 왕복합니다.</small>
-    </div>
-    <div id="constructionPanel" class="construction-panel" hidden aria-label="정착지 건설">
-      <div class="construction-panel__header">
-        <strong>건설</strong>
-        <span id="constructionStatus">작업소 준비</span>
-      </div>
-      <button id="placeWorkshopBtn" type="button">건설 작업소 · 목재 12</button>
-      <button id="placeTrainingCenterBtn" type="button" hidden>훈련소 · 목재 18</button>
-      <button id="cancelPlacementBtn" type="button" hidden>배치 취소</button>
-      <small id="constructionHint">건물을 선택하면 정착지 격자가 표시됩니다.</small>
-    </div>
-    <div id="buildingManagePanel" class="building-manage-panel" hidden aria-label="건물 관리">
-      <div class="building-manage-panel__header">
-        <div>
-          <strong id="buildingManageTitle">건물 관리</strong>
-          <span id="buildingManageLevel">Lv.1</span>
-        </div>
-        <button id="buildingManageCloseBtn" type="button" aria-label="건물 관리 닫기">×</button>
-      </div>
-      <p id="buildingManageDescription"></p>
-      <div class="building-manage-panel__stats">
-        <span id="buildingManageWorkerLabel">인력</span>
-        <b id="buildingManageWorkerCount">0 / 0</b>
-      </div>
-      <small id="buildingManageEffect"></small>
-      <button id="buildingManageHireBtn" type="button">인력 고용</button>
-      <button id="buildingManageAutoBtn" type="button" hidden>자동 생산 ON</button>
-      <button id="buildingManageDeployBtn" type="button" hidden>자동 전투</button>
-      <button id="buildingManageUpgradeBtn" type="button">건물 업그레이드</button>
-      <small id="buildingManageHint"></small>
-    </div>
-    <aside id="soldierUpgradePanel" class="soldier-upgrade-panel" aria-label="병사 업그레이드" hidden>
-      <div class="soldier-upgrade-panel__header">
-        <div>
-          <strong>병사 업그레이드</strong>
-          <small>적 처치 골드로 모든 병사를 강화합니다.</small>
-        </div>
-        <span>골드 <b id="upgradeGoldValue">0</b></span>
-      </div>
-      <button id="upgradeAttackBtn" type="button">
-        <span><b>화력 강화</b><small>모든 병사 공격력 증가</small></span>
-        <strong id="upgradeAttackCost">Lv.0 · 25</strong>
-      </button>
-      <button id="upgradeHealthBtn" type="button">
-        <span><b>방탄 장비</b><small>모든 병사 최대 체력 증가</small></span>
-        <strong id="upgradeHealthCost">Lv.0 · 30</strong>
-      </button>
-      <button id="upgradeFireRateBtn" type="button">
-        <span><b>사격 훈련</b><small>연사·재장전 속도 증가</small></span>
-        <strong id="upgradeFireRateCost">Lv.0 · 40</strong>
-      </button>
-      <button id="startNextWaveBtn" class="soldier-upgrade-panel__next" type="button" hidden>다음 라운드 즉시 시작</button>
-    </aside>
-
-    <div id="captureTransitionPanel" class="capture-panel" hidden>
-      <strong>첫 전초기지 확보</strong>
-      <span id="captureRewardText">점령 보상: 군자금 +0</span>
-      <span>점령지를 확보하면 군자금으로 병영을 건설할 수 있습니다.</span>
-      <button id="captureContinueBtn" type="button">점령지 확보 완료</button>
-    </div>
-    <div id="barracksPanel" class="barracks-panel" hidden>
-      <strong>점령지 건설</strong>
-      <span>점령지 병영은 군자금을 사용해 전선 병력을 추가로 자동 충원합니다.</span>
-      <button id="buildBarracksBtn" type="button">병영 건설 · 100</button>
-      <button id="autoProductionBtn" type="button" hidden>자동 생산 ON</button>
-      <div id="productionProgress" class="production-progress" hidden>
-        <div id="productionProgressBar"></div>
-      </div>
-      <span id="barracksStatus" class="barracks-status"></span>
-    </div>
-    <div id="worldDeployPanel" class="world-deploy-panel" aria-label="전체 지도 병력 배치" hidden>
-      <div class="world-deploy-panel__header">
-        <div>
-          <strong>본부 대기 병력 배치</strong>
-          <small>보낼 인원을 고른 뒤 지도에서 목적지를 누르세요.</small>
-        </div>
-        <span id="worldDeployReserveCount">0명</span>
-      </div>
-      <div class="world-deploy-panel__amounts" aria-label="배치 인원 선택">
-        <button id="worldDeployOneBtn" type="button">1명</button>
-        <button id="worldDeployHalfBtn" type="button">절반</button>
-        <button id="worldDeployAllBtn" type="button">전부</button>
-      </div>
-      <div class="world-deploy-panel__selected">
-        <span>선택 병력</span>
-        <b id="worldDeploySelectedCount">0명</b>
-      </div>
-      <strong id="worldDeployHint" class="world-deploy-panel__hint">빛나는 지역을 누르세요.</strong>
-      <button id="worldDeployCancelBtn" class="world-deploy-panel__cancel" type="button">배치 취소</button>
-    </div>
-    <div id="ui-layer" hidden>
-      <button id="spawnRiflemanBtn" type="button">소총병 생산 · 20</button>
     </div>
   </div>
 
-  <!-- 스크립트 로드 순서 중요: 상속 관계상 부모 클래스가 먼저 로드되어야 함 -->
-  <script src="image-assets.js"></script>
-  <script src="visual-config.js"></script>
-  <script src="entity.js"></script>
-  <script src="render-system.js"></script>
-  <script src="worker.js"></script>
-  <script src="base.js"></script>
-  <script src="soldier.js"></script>
-  <script src="building.js"></script>
-  <script src="bullet.js"></script>
-  <script src="strategic-world.js"></script>
-  <script src="wave-defense.js"></script>
-  <script src="game.js"></script>
-  <script src="main.js"></script>
+  <div id="lobbyScreen" class="active">
+    <div id="opTopBar">
+      <h1>⚔ 전장 지휘 스킬트리</h1>
+      <div id="opTopStats">
+        <div class="stat"><span class="label">보유 골드</span><span class="value gold" id="topGoldVal">0</span></div>
+        <div class="stat"><span class="label">전체 구매 레벨</span><span class="value" id="topLevelVal">0</span></div>
+        <div class="stat"><span class="label">라운드 시간</span><span class="value" id="topRoundVal" style="color:var(--ally)">15초</span></div>
+        <button id="startRoundBtn">전투 시작</button>
+      </div>
+    </div>
+    <div id="treeViewport">
+      <div id="treeSvgWrap"></div>
+      <div id="toast"></div>
+      <div id="zoomControls">
+        <button id="zoomIn">+</button>
+        <button id="zoomOut">-</button>
+        <button id="zoomReset">⟲</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="skillPanel"><span class="p-close" id="panelClose">✕</span><div id="panelBody"></div></div>
+
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const gameScreen = document.getElementById('gameScreen');
+  const lobbyScreen = document.getElementById('lobbyScreen');
+  const goldVal = document.getElementById('goldVal');
+  const timeVal = document.getElementById('timeVal');
+  const waveVal = document.getElementById('waveVal');
+  const troopVal = document.getElementById('troopVal');
+  const overlay = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const lobbyBtn = document.getElementById('lobbyBtn');
+  const finalTime = document.getElementById('finalTime');
+  const finalWave = document.getElementById('finalWave');
+  const finalKills = document.getElementById('finalKills');
+  const goldEarnedEl = document.getElementById('goldEarnedEl');
+  const goldBankedEl = document.getElementById('goldBankedEl');
+  const roundRewardNoteEl = document.getElementById('roundRewardNoteEl');
+  const roundBarFill = document.getElementById('roundBarFill');
+  const warnBanner = document.getElementById('warnBanner');
+  const cmdBtn = document.getElementById('cmdBtn');
+  const cmdPanel = document.getElementById('cmdPanel');
+  const cmdChoices = document.getElementById('cmdChoices');
+
+  const topGoldVal = document.getElementById('topGoldVal');
+  const topLevelVal = document.getElementById('topLevelVal');
+  const topRoundVal = document.getElementById('topRoundVal');
+  const startRoundBtn = document.getElementById('startRoundBtn');
+  const treeViewport = document.getElementById('treeViewport');
+  const treeSvgWrap = document.getElementById('treeSvgWrap');
+  const toast = document.getElementById('toast');
+  const zoomInBtn = document.getElementById('zoomIn');
+  const zoomOutBtn = document.getElementById('zoomOut');
+  const zoomResetBtn = document.getElementById('zoomReset');
+  const skillPanel = document.getElementById('skillPanel');
+  const panelBody = document.getElementById('panelBody');
+  const panelClose = document.getElementById('panelClose');
+
+  let W, H, cx, cy;
+  function resize(){
+    W = stage.clientWidth; H = stage.clientHeight;
+    canvas.width = W*devicePixelRatio; canvas.height = H*devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    cx = W/2; cy = H/2;
+  }
+  window.addEventListener('resize', ()=>{ if(phase==='round') resize(); if(phase==='lobby') fitTree(); });
+
+  // ============================================================
+  // 1) 단일 가지형 영구 스킬트리 정의 (skillDefinitions)
+  //    루트=작전 지속 시간. 부모가 1레벨이 되면 자식이 해금(공개)된다.
+  //    공개 여부는 저장하지 않고 부모 레벨로 매번 계산한다.
+  // ============================================================
+  const SKILLS = [
+    {id:'operationDuration', name:'작전 지속 시간', icon:'⏳', maxLevel:6, parent:null,
+      values:[20,25,30,35,40,45], costs:[6,25,90,280,800,2300], pos:{x:600,y:380},
+      desc:'라운드 최대 진행 시간을 늘립니다. 시간이 늘수록 더 강한 적 구간이 열립니다.'},
+
+    // 1단계 (루트 Lv.1에서 동시 해금)
+    {id:'baseDurability', name:'기지 내구도', icon:'🛡', maxLevel:5, parent:'operationDuration', unlockLevel:1,
+      values:[12,24,36,48,60], costs:[10,30,90,260,750], pos:{x:420,y:300},
+      desc:'기지 최대 체력을 늘립니다.'},
+    {id:'summonSpeed', name:'소환 속도', icon:'⏱', maxLevel:5, parent:'operationDuration', unlockLevel:1,
+      values:[10,20,30,40,50], costs:[12,45,120,500,1600], pos:{x:420,y:460},
+      desc:'기지를 눌러 소환하는 간격을 크게 줄입니다. 후반으로 갈수록 병력 생산 속도가 확실히 빨라집니다.'},
+    {id:'eliteContract', name:'정예 계약', icon:'👑', maxLevel:3, parent:'operationDuration', unlockLevel:4,
+      values:[4,7,10], costs:[180,540,1600], pos:{x:600,y:200},
+      desc:'적이 낮은 확률로 강력한 정예로 등장합니다.'},
+    {id:'soldierDamage', name:'병사 공격력', icon:'⚔', maxLevel:5, parent:'operationDuration', unlockLevel:1,
+      values:[10,20,30,40,50], costs:[12,36,110,320,900], pos:{x:780,y:300},
+      desc:'모든 아군의 공격력을 늘립니다.'},
+    {id:'goldGain', name:'골드 획득', icon:'💰', maxLevel:5, parent:'operationDuration', unlockLevel:1,
+      values:[8,16,24,32,40], costs:[10,30,90,260,750], pos:{x:780,y:460},
+      desc:'적 처치로 얻는 골드를 늘립니다.'},
+
+    // 2단계
+    {id:'soldierDurability', name:'병사 내구도', icon:'❤', maxLevel:5, parent:'baseDurability', unlockLevel:1,
+      values:[12,24,36,48,60], costs:[15,45,120,390,1100], pos:{x:260,y:220},
+      desc:'모든 아군의 최대 체력을 늘립니다.'},
+    {id:'autoProduction', name:'자동 생산', icon:'⚙', maxLevel:5, parent:'summonSpeed', unlockLevel:1,
+      values:[12,9,7,5.5,4], costs:[30,90,130,850,2500], pos:{x:260,y:540},
+      desc:'누르지 않아도 일정 간격으로 병사가 자동 생성됩니다. 후반 레벨에서 생산 속도가 크게 증가합니다.'},
+    {id:'soldierMobility', name:'병사 기동력', icon:'👟', maxLevel:5, parent:'soldierDamage', unlockLevel:1,
+      values:[8,16,24,32,40], costs:[15,45,120,390,1100], pos:{x:930,y:220},
+      desc:'모든 아군의 이동속도를 늘립니다.'},
+    {id:'pickupRadius', name:'커서 자석', icon:'🧲', maxLevel:5, parent:'goldGain', unlockLevel:1,
+      values:[20,40,60,80,100], costs:[12,36,110,320,900], pos:{x:930,y:580},
+      desc:'Lv.0에서는 커서가 코인에 닿으면 즉시 획득합니다. Lv.1부터 주변 코인이 커서로 자연스럽게 끌려옵니다.'},
+
+    // 3단계
+    {id:'emergencyRepair', name:'비상 수리', icon:'🩹', maxLevel:3, parent:'soldierDurability', unlockLevel:1,
+      values:[12,20,28], costs:[55,220,800], pos:{x:100,y:140},
+      desc:'체력 30% 이하가 되면 자동 회복하며, 라운드에 한 번 치명적인 피해도 버텨냅니다.'},
+    {id:'reserveForce', name:'예비 병력', icon:'🎖', maxLevel:3, parent:'autoProduction', unlockLevel:1,
+      values:[6,5,4], costs:[45,180,650], pos:{x:100,y:620},
+      desc:'수동 소환을 일정 횟수 반복하면 병사 1명이 무료로 추가됩니다.'},
+    {id:'focusFire', name:'집중 사격', icon:'🎯', maxLevel:3, parent:'soldierMobility', unlockLevel:1,
+      values:[8,14,20], costs:[60,240,900], pos:{x:1060,y:120},
+      desc:'한 적에 2명 이상 몰리면 추가 피해를 줍니다.'},
+    {id:'assaultCommand', name:'돌격 명령', icon:'📯', maxLevel:3, parent:'soldierMobility', unlockLevel:1,
+      values:{speed:[20,30,40],atk:[8,14,20]}, costs:[50,200,750], pos:{x:1080,y:260},
+      desc:'생성 직후 8초간 이동속도와 공격속도가 강화됩니다.'},
+    {id:'magneticRecovery', name:'기지 수집 반경', icon:'🏰', maxLevel:3, parent:'pickupRadius', unlockLevel:1,
+      values:{range:[150,230,320], speed:[90,130,180]}, costs:[50,150,450], pos:{x:1080,y:660},
+      desc:'기지 주변의 코인이 자동으로 끌려오는 수집 범위를 넓힙니다.'},
+
+    // 색깔 코인 가지: 외형과 가치만 달라지며 자동 흡수 기능은 추가하지 않는다.
+    {id:'premiumCoin', name:'고급 주화', icon:'🔵', maxLevel:3, parent:'goldGain', unlockLevel:1,
+      values:[4,7,10], costs:[60,180,540], pos:{x:930,y:420},
+      desc:'적 처치 시 노란 코인 대신 5골드짜리 파란 코인이 등장할 확률이 생깁니다.'},
+    {id:'rareCoin', name:'희귀 주화', icon:'🟣', maxLevel:3, parent:'premiumCoin', unlockLevel:1,
+      values:[5,10,15], costs:[60,230,850], pos:{x:1060,y:380},
+      desc:'파란 코인이 등장할 때 일부가 20골드짜리 보라 코인으로 승급합니다.'},
+    {id:'luckAmplifier', name:'행운 증폭', icon:'🍀', maxLevel:3, parent:'premiumCoin', unlockLevel:1,
+      values:[0.4,0.8,1.2], costs:[45,180,700], pos:{x:1060,y:500},
+      desc:'일반 코인이 연속해서 나오면 다음 고급 코인 등장 확률이 조금씩 증가합니다.'},
+    {id:'jackpotCoin', name:'잭팟 주화', icon:'🔴', maxLevel:1, parent:'rareCoin', unlockLevel:1,
+      values:[0.25], costs:[1200], pos:{x:1190,y:340},
+      desc:'적 처치 시 매우 낮은 확률로 50골드짜리 붉은 코인이 등장합니다.'},
+
+    // 4단계
+    {id:'chainBounty', name:'연쇄 현상금', icon:'⛓', maxLevel:3, parent:'focusFire', unlockLevel:1,
+      values:[10,20,30], costs:[120,360,1080], pos:{x:1190,y:60},
+      desc:'3초 내에 연속 처치하면 콤보에 따라 골드 보너스가 상승합니다.'}
+  ];
+  const SKILL_MAP = {}; SKILLS.forEach(s=> SKILL_MAP[s.id]=s);
+  const CHILDREN_OF = {}; SKILLS.forEach(s=>{ if(s.parent){ (CHILDREN_OF[s.parent]=CHILDREN_OF[s.parent]||[]).push(s.id); } });
+
+  // ============================================================
+  // 2) 저장 / 로드 (새 가지형 스킬트리 전용 저장소, saveVersion:7)
+  // ============================================================
+  const SAVE_KEY = 'skillState_branch_v6'; // 이전 개편 저장과 분리: 최초 실행은 모든 스킬 Lv.0
+  const skillState = { levels:{} };
+  const meta = { gold:0, records:{ rounds:0, bestWave:0, bestKills:0, bestTime:0 } };
+
+  async function loadSave(){
+    try{
+      const res = await window.storage.get(SAVE_KEY, false);
+      if(res && res.value){
+        const data = JSON.parse(res.value);
+        if(data.saveVersion>=6 && data.levels){
+          // v6: 현재 가지형 스킬트리 저장
+          SKILLS.forEach(s=> skillState.levels[s.id] = Math.max(0, Math.min(s.maxLevel, data.levels[s.id]||0)));
+        } else if(data.baseLevels || data.moduleLevels){
+          // v3: 기반업그레이드/전술모듈 분리 저장 -> 병합, 장착·교리·조건 데이터는 폐기
+          SKILLS.forEach(s=>{
+            let v=0;
+            if(data.baseLevels && data.baseLevels[s.id]!==undefined) v=data.baseLevels[s.id];
+            if(data.moduleLevels && data.moduleLevels[s.id]!==undefined) v=data.moduleLevels[s.id];
+            skillState.levels[s.id] = Math.max(0, Math.min(s.maxLevel, v));
+          });
+        } else if(data.levels){
+          // v1/v2 구형 평면 저장 (구 id 매핑)
+          const OLD_ID_MAP = { hp:'baseDurability', dmg:'soldierDamage', vit:'soldierDurability', spd:'soldierMobility',
+            gold:'goldGain', pickup:'pickupRadius', spawn:'summonSpeed', auto:'autoProduction',
+            time:'operationDuration', roundDuration:'operationDuration' };
+          const src = data.levels;
+          SKILLS.forEach(s=>{
+            let raw = src[s.id];
+            if(raw===undefined){
+              const oldKey = Object.keys(OLD_ID_MAP).find(k=>OLD_ID_MAP[k]===s.id && src[k]!==undefined);
+              if(oldKey) raw = src[oldKey];
+            }
+            skillState.levels[s.id] = Math.max(0, Math.min(s.maxLevel, Math.round(raw||0)));
+          });
+        }
+        // 제거된 시스템의 저장 필드(equippedModules/selectedDoctrine/selectedOperationModifier/
+        // commandCapacity/unlockedOperationModifiers 등)는 존재해도 그냥 무시하고 읽지 않는다.
+        meta.gold = typeof data.gold==='number' ? Math.max(0, Math.floor(data.gold)) : 0;
+        if(data.records){
+          meta.records.rounds=data.records.rounds||0; meta.records.bestWave=data.records.bestWave||0;
+          meta.records.bestKills=data.records.bestKills||0; meta.records.bestTime=data.records.bestTime||0;
+        }
+        persistSave();
+      }
+    }catch(e){ /* 저장 데이터 없음: 처음부터 시작 */ }
+    renderLobby();
+  }
+  async function persistSave(){
+    try{
+      await window.storage.set(SAVE_KEY, JSON.stringify({
+        saveVersion:7, gold:meta.gold, levels:skillState.levels, records:meta.records
+      }), false);
+    }catch(e){ /* best effort */ }
+  }
+
+  // ============================================================
+  // 3) 조회 / 공개(reveal) / 구매 (장착·교리·조건·용량 없음)
+  // ============================================================
+  function L(id){ return skillState.levels[id]||0; }
+  function totalLevel(){ return SKILLS.reduce((s,sk)=>s+L(sk.id),0); }
+  function nextCost(s){ const l=L(s.id); return l<s.maxLevel ? s.costs[l] : null; }
+
+  function isRevealed(id){
+    const s = SKILL_MAP[id];
+    if(!s.parent) return true; // 루트
+    return L(s.parent) >= (s.unlockLevel||1);
+  }
+  function nodeState(s){
+    const l = L(s.id);
+    if(l>=s.maxLevel) return 'maxed';
+    if(l===0) return 'available';
+    return 'owned';
+  }
+
+  let buying = false; // 중복 구매 방지 잠금
+  let justUnlockedId = null;
+  let justLeveledId = null;
+  let justRevealedIds = [];
+  function buySkill(id){
+    if(buying) return false;
+    const s = SKILL_MAP[id]; const l = L(id);
+    if(l>=s.maxLevel) return false;
+    if(!isRevealed(id)) return false;
+    const cost = nextCost(s);
+    if(meta.gold < cost) return false;
+
+    buying = true;
+    const revealedBefore = new Set(SKILLS.filter(sk=>isRevealed(sk.id)).map(sk=>sk.id));
+    meta.gold -= cost;
+    skillState.levels[id] = l+1;
+    const revealedAfter = SKILLS.filter(sk=>isRevealed(sk.id)).map(sk=>sk.id);
+    justUnlockedId = (l+1===1) ? id : null;
+    justLeveledId = (l+1>1) ? id : null;
+    justRevealedIds = revealedAfter.filter(x=>!revealedBefore.has(x));
+    persistSave();
+    buying = false;
+    return true;
+  }
+
+  // ============================================================
+  // 4) 전투 효과 계산 (구매한 레벨이 항상 그대로 적용됨, 중복 누적 없음)
+  // ============================================================
+  function getBaseMaxHp(){ return Math.round(100*(1+(L('baseDurability')>0?SKILL_MAP.baseDurability.values[L('baseDurability')-1]:0)/100)); }
+  function getSoldierDamageMult(){ return 1+(L('soldierDamage')>0?SKILL_MAP.soldierDamage.values[L('soldierDamage')-1]:0)/100; }
+  function getSoldierHpMult(){ return 1+(L('soldierDurability')>0?SKILL_MAP.soldierDurability.values[L('soldierDurability')-1]:0)/100; }
+  function getSoldierSpeedMult(){ return 1+(L('soldierMobility')>0?SKILL_MAP.soldierMobility.values[L('soldierMobility')-1]:0)/100; }
+  // pickupRadius ID는 저장 호환을 위해 유지하지만, 실제 표시 이름은 '커서 자석'이다.
+  function getPickupRadius(){ return 24*(1+(L('pickupRadius')>0?SKILL_MAP.pickupRadius.values[L('pickupRadius')-1]:0)/100); }
+  function getOperationDuration(){ const l=L('operationDuration'); return 15+(l>0?SKILL_MAP.operationDuration.values[l-1]-15:0); }
+  function getManualSpawnInterval(){
+    // 초반은 느리게 시작하고, 소환 속도/자동 생산/예비 병력 투자 후 후반 체감이 크게 달라지도록 설정
+    const baseManualSpawnInterval = 2.2;
+    let interval = baseManualSpawnInterval*(1-(L('summonSpeed')>0?SKILL_MAP.summonSpeed.values[L('summonSpeed')-1]:0)/100);
+    if(overloadTimer>0) interval *= 0.50;
+    return Math.max(baseManualSpawnInterval*0.45, interval);
+  }
+  function getAutoSpawnInterval(){
+    const l=L('autoProduction'); if(l<=0) return null;
+    let interval=SKILL_MAP.autoProduction.values[l-1];
+    if(overloadTimer>0) interval*=0.75;
+    return interval;
+  }
+  function getReserveForceEvery(){ const l=L('reserveForce'); return l>0?SKILL_MAP.reserveForce.values[l-1]:0; }
+  function getEmergencyRepairHealPct(){ const l=L('emergencyRepair'); return l>0?SKILL_MAP.emergencyRepair.values[l-1]:0; }
+  function getFocusFireBonusPct(){ const l=L('focusFire'); return l>0?SKILL_MAP.focusFire.values[l-1]:0; }
+  function getAssaultCommand(){ const l=L('assaultCommand'); if(l<=0) return null;
+    return { speed:SKILL_MAP.assaultCommand.values.speed[l-1], atk:SKILL_MAP.assaultCommand.values.atk[l-1] }; }
+  function getMagnetic(){ const l=L('magneticRecovery'); if(l<=0) return null;
+    return { range:SKILL_MAP.magneticRecovery.values.range[l-1], speed:SKILL_MAP.magneticRecovery.values.speed[l-1] }; }
+  function getPremiumCoinChancePct(){ const l=L('premiumCoin'); return l>0?SKILL_MAP.premiumCoin.values[l-1]:0; }
+  function getRareCoinUpgradeChancePct(){ const l=L('rareCoin'); return l>0?SKILL_MAP.rareCoin.values[l-1]:0; }
+  function getLuckPityStepPct(){ const l=L('luckAmplifier'); return l>0?SKILL_MAP.luckAmplifier.values[l-1]:0; }
+  function getJackpotCoinChancePct(){ const l=L('jackpotCoin'); return l>0?SKILL_MAP.jackpotCoin.values[l-1]:0; }
+  function getChainBountyMaxPct(){ const l=L('chainBounty'); return l>0?SKILL_MAP.chainBounty.values[l-1]:0; }
+  function getEliteChancePct(phaseIdx){
+    let c=0; const l=L('eliteContract');
+    if(l>0) c += SKILL_MAP.eliteContract.values[l-1];
+    if(phaseIdx>=5) c += 3;
+    return Math.min(30,c);
+  }
+  function getGoldMultiplier(eliteMult){
+    let m = 1+(L('goldGain')>0?SKILL_MAP.goldGain.values[L('goldGain')-1]:0)/100;
+    const cbMax = getChainBountyMaxPct();
+    if(cbMax>0){ const tier=Math.min(5,Math.floor(comboCount/5)); m *= (1+(cbMax/5*tier)/100); }
+    m *= (eliteMult||1);
+    return m;
+  }
+
+  // ============================================================
+  // 5) 스킬트리 렌더링 (점진적 공개 + 팬/줌 + 상세 패널)
+  // ============================================================
+  const SVGNS='http://www.w3.org/2000/svg';
+  const TREE_W=1280, TREE_H=760;
+  let zoom=1, panX=0, panY=0;
+
+  function fitTree(){
+    const vw = treeViewport.clientWidth||900, vh = treeViewport.clientHeight||600;
+    zoom = Math.max(0.3, Math.min(vw/TREE_W, vh/TREE_H)*0.94);
+    panX = (vw - TREE_W*zoom)/2;
+    panY = (vh - TREE_H*zoom)/2;
+    applyTreeTransform();
+  }
+  function applyTreeTransform(){ treeSvgWrap.style.transform = 'translate('+panX+'px,'+panY+'px) scale('+zoom+')'; }
+  function clampZoom(z){ return Math.max(0.3, Math.min(2.2, z)); }
+  function zoomAtPoint(clientX, clientY, factor){
+    const rect = treeViewport.getBoundingClientRect();
+    const mx = clientX-rect.left, my = clientY-rect.top;
+    const worldX = (mx-panX)/zoom, worldY=(my-panY)/zoom;
+    zoom = clampZoom(zoom*factor);
+    panX = mx-worldX*zoom; panY = my-worldY*zoom;
+    applyTreeTransform();
+  }
+  let dragging=false, dragStartX=0, dragStartY=0, panStartX=0, panStartY=0, dragMoved=false;
+  treeViewport.addEventListener('mousedown', (e)=>{
+    dragging=true; dragMoved=false; dragStartX=e.clientX; dragStartY=e.clientY; panStartX=panX; panStartY=panY;
+    treeViewport.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    if(Math.abs(e.clientX-dragStartX)>3 || Math.abs(e.clientY-dragStartY)>3) dragMoved=true;
+    panX = panStartX+(e.clientX-dragStartX); panY = panStartY+(e.clientY-dragStartY);
+    applyTreeTransform();
+  });
+  window.addEventListener('mouseup', ()=>{ dragging=false; treeViewport.classList.remove('grabbing'); });
+  treeViewport.addEventListener('touchstart', (e)=>{
+    if(e.touches.length!==1) return;
+    dragging=true; dragMoved=false; dragStartX=e.touches[0].clientX; dragStartY=e.touches[0].clientY; panStartX=panX; panStartY=panY;
+  }, {passive:true});
+  treeViewport.addEventListener('touchmove', (e)=>{
+    if(!dragging || e.touches.length!==1) return;
+    if(Math.abs(e.touches[0].clientX-dragStartX)>3 || Math.abs(e.touches[0].clientY-dragStartY)>3) dragMoved=true;
+    panX = panStartX+(e.touches[0].clientX-dragStartX); panY = panStartY+(e.touches[0].clientY-dragStartY);
+    applyTreeTransform();
+  }, {passive:true});
+  treeViewport.addEventListener('touchend', ()=>{ dragging=false; });
+  treeViewport.addEventListener('wheel', (e)=>{ e.preventDefault(); zoomAtPoint(e.clientX, e.clientY, e.deltaY<0?1.12:0.89); }, {passive:false});
+  zoomInBtn.addEventListener('click', ()=>{ const r=treeViewport.getBoundingClientRect(); zoomAtPoint(r.left+r.width/2, r.top+r.height/2, 1.2); });
+  zoomOutBtn.addEventListener('click', ()=>{ const r=treeViewport.getBoundingClientRect(); zoomAtPoint(r.left+r.width/2, r.top+r.height/2, 0.83); });
+  zoomResetBtn.addEventListener('click', fitTree);
+
+  function el(tag, attrs){ const e=document.createElementNS(SVGNS,tag); for(const k in attrs) if(attrs[k]!==undefined) e.setAttribute(k,attrs[k]); return e; }
+
+  function buildTree(){
+    treeSvgWrap.innerHTML='';
+    const svg = el('svg', {id:'treeSvg', viewBox:'0 0 '+TREE_W+' '+TREE_H, width:TREE_W, height:TREE_H});
+    svg.appendChild(el('rect',{x:0,y:0,width:TREE_W,height:TREE_H,fill:'#080b10'}));
+    for(let x=0;x<=TREE_W;x+=50) svg.appendChild(el('line',{x1:x,y1:0,x2:x,y2:TREE_H,stroke:'rgba(79,163,227,0.05)','stroke-width':1}));
+    for(let y=0;y<=TREE_H;y+=50) svg.appendChild(el('line',{x1:0,y1:y,x2:TREE_W,y2:y,stroke:'rgba(79,163,227,0.05)','stroke-width':1}));
+
+    // 연결선: 공개된 자식으로 향하는 선만 그린다 (부모-자식 중앙 연결, 노드 뒤에 렌더)
+    SKILLS.forEach(s=>{
+      if(!s.parent) return;
+      if(!isRevealed(s.id)) return; // 아직 공개 안 된 자식으로 가는 선은 표시하지 않음
+      const p = SKILL_MAP[s.parent];
+      const owned = L(s.parent)>0 && L(s.id)>0;
+      const justRevealed = justRevealedIds.indexOf(s.id)>=0;
+      const line = el('line',{class:'tr-edge'+(owned?' owned':'')+(justRevealed?' reveal-anim':''),
+        x1:p.pos.x, y1:p.pos.y, x2:s.pos.x, y2:s.pos.y});
+      svg.appendChild(line);
+    });
+
+    // 노드: 공개된 것만 렌더
+    SKILLS.forEach(s=>{ if(isRevealed(s.id)) svg.appendChild(buildNode(s)); });
+
+    treeSvgWrap.appendChild(svg);
+
+    if(justRevealedIds.length){
+      const names = justRevealedIds.map(id=>SKILL_MAP[id].name).join(', ');
+      showToast('새 스킬 해금: '+names);
+    }
+    justRevealedIds = [];
+    justUnlockedId = null;
+    justLeveledId = null;
+  }
+
+  function buildNode(s){
+    const state = nodeState(s);
+    const cost = nextCost(s);
+    const affordable = state!=='maxed' && cost!==null && meta.gold>=cost;
+    let fill, stroke;
+    if(state==='maxed'){
+      fill='#263a2e'; stroke='#62d79b';
+    } else if(affordable){
+      // 지금 바로 업그레이드 가능한 노드: 노란색
+      fill='#e8a33d'; stroke='#ffe0a0';
+    } else {
+      // 골드가 부족한 노드: 빨간색
+      fill='#3a1719'; stroke='#e0483f';
+    }
+    const w=76, h=56;
+    const cls = ['sk-node','state-'+state];
+    if(s.id===justUnlockedId) cls.push('unlock-pop');
+    if(s.id===justLeveledId) cls.push('level-flash');
+    const g = el('g',{class:cls.join(' ')});
+    // 넉넉한 터치 영역
+    g.appendChild(el('rect',{x:s.pos.x-w/2-8,y:s.pos.y-h/2-8,width:w+16,height:h+16,fill:'transparent'}));
+    g.appendChild(el('rect',{class:'box', x:s.pos.x-w/2, y:s.pos.y-h/2, width:w, height:h, rx:10, fill, stroke}));
+    if(state==='maxed') g.appendChild(el('rect',{class:'max-ring', x:s.pos.x-w/2-4, y:s.pos.y-h/2-4, width:w+8, height:h+8, rx:12}));
+    const icon = el('text',{class:'icon-t', x:s.pos.x, y:s.pos.y-8}); icon.textContent=s.icon; g.appendChild(icon);
+    const lvl = el('text',{class:'lvl-t', x:s.pos.x, y:s.pos.y+14}); lvl.textContent=L(s.id)+'/'+s.maxLevel; g.appendChild(lvl);
+    const name = el('text',{class:'name-t', x:s.pos.x, y:s.pos.y+h/2+15}); name.textContent=s.name; g.appendChild(name);
+    g.style.cursor='pointer';
+    g.addEventListener('mouseenter', ()=> showSkillPreview(s.id));
+    g.addEventListener('mouseleave', hideSkillPreview);
+    g.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(dragMoved) return;
+      const lvl = L(s.id);
+      if(lvl>=s.maxLevel){ showToast(s.name+'은(는) 이미 MAX 레벨입니다.'); return; }
+      const cost = nextCost(s);
+      if(meta.gold < cost){ showToast('골드가 부족합니다. 필요: '+cost); return; }
+      if(buySkill(s.id)){
+        const newLvl = L(s.id);
+        renderLobby();
+        showSkillPreview(s.id);
+        showToast(s.name+' Lv.'+newLvl+' 업그레이드!');
+      }
+    });
+    return g;
+  }
+
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.remove('show'); void toast.offsetWidth; toast.classList.add('show');
+  }
+
+  function opDurationExtra(lvl){
+    const notes = ['적 밀도 소폭 증가','빠른 적 등장 가능','체력 높은 적 등장 가능','다방향 집중 공세 추가','정예 적 기본 확률 등장','최종 공세 / 지휘관급 적 등장'];
+    return notes[lvl-1]||'';
+  }
+
+  function showSkillPreview(id){
+    const s = SKILL_MAP[id]; const lvl = L(id); const maxed = lvl>=s.maxLevel;
+    let html = '<div class="p-head"><div><div class="p-name">'+s.icon+' '+s.name+'</div>'+
+      '<div class="p-lvl">Lv.'+lvl+' / '+s.maxLevel+'</div></div></div>';
+    html += '<div class="p-desc">'+s.desc+'</div>';
+
+    if(id==='operationDuration'){
+      const cur = lvl>0 ? s.values[lvl-1]+'초' : '15초';
+      const next = !maxed ? s.values[lvl]+'초' : null;
+      html += '<div class="p-effect">'+
+        (next
+          ? '<div class="change"><span class="from">'+cur+'</span><span class="arrow">→</span><span class="to">'+next+'</span></div>'
+          : '<div class="change"><span class="from">'+cur+'</span></div>')+
+        '</div>';
+    } else {
+      const curTxt = lvl>0 ? effectText(s,lvl) : '효과 없음';
+      const nextTxt = !maxed ? effectText(s,lvl+1) : null;
+      html += '<div class="p-effect">'+
+        (nextTxt
+          ? '<div class="change"><span class="from">'+curTxt+'</span><span class="arrow">→</span><span class="to">'+nextTxt+'</span></div>'
+          : '<div class="change"><span class="from">'+curTxt+'</span></div>')+
+        '</div>';
+    }
+
+    if(maxed){
+      html += '<div class="p-max">MAX 레벨</div>';
+    } else {
+      const cost = nextCost(s);
+      html += '<div class="p-reason">필요 골드: '+cost+'</div>';
+    }
+    panelBody.innerHTML = html;
+    skillPanel.classList.add('open');
+  }
+
+  function hideSkillPreview(){
+    skillPanel.classList.remove('open');
+  }
+  panelClose.addEventListener('click', hideSkillPreview);
+
+  function effectText(s, lvl){
+    if(lvl<=0) return '없음';
+    switch(s.id){
+      case 'baseDurability': return '기지 최대 체력 +'+s.values[lvl-1]+'%';
+      case 'soldierDamage': return '병사 공격력 +'+s.values[lvl-1]+'%';
+      case 'soldierDurability': return '병사 체력 +'+s.values[lvl-1]+'%';
+      case 'soldierMobility': return '병사 이동속도 +'+s.values[lvl-1]+'%';
+      case 'goldGain': return '적 처치 골드 +'+s.values[lvl-1]+'%';
+      case 'pickupRadius': return '커서 자석 범위 +'+s.values[lvl-1]+'%';
+      case 'summonSpeed': return '수동 소환 간격 -'+s.values[lvl-1]+'%';
+      case 'autoProduction': return '자동 생산 간격 '+s.values[lvl-1]+'초';
+      case 'emergencyRepair': return '체력 30% 이하 또는 치명타 시 최대체력의 '+s.values[lvl-1]+'% 회복 (라운드 1회)';
+      case 'reserveForce': return '수동 소환 '+s.values[lvl-1]+'회마다 병사 1명 무료 추가';
+      case 'focusFire': return '한 적에 2명 이상 공격 시 피해 +'+s.values[lvl-1]+'%';
+      case 'assaultCommand': return '신규 병사 8초간 이동속도 +'+s.values.speed[lvl-1]+'%, 공격속도 +'+s.values.atk[lvl-1]+'%';
+      case 'magneticRecovery': return '기지 주변 '+s.values.range[lvl-1]+'px 안의 코인이 부드럽게 끌려와 자동 회수';
+      case 'premiumCoin': return '파란 코인 등장 확률 '+s.values[lvl-1]+'% · 가치 5골드';
+      case 'rareCoin': return '파란 코인의 보라 코인 승급 확률 '+s.values[lvl-1]+'% · 가치 20골드';
+      case 'luckAmplifier': return '일반 코인 연속 시 고급 코인 확률 +'+s.values[lvl-1]+'%p씩 누적 (최대 +10%p)';
+      case 'jackpotCoin': return '붉은 잭팟 코인 등장 확률 '+s.values[lvl-1]+'% · 가치 50골드';
+      case 'chainBounty': return '3초 내 연속 처치 콤보 시 최대 골드 +'+s.values[lvl-1]+'%';
+      case 'eliteContract': return '정예 적 등장 확률 '+s.values[lvl-1]+'% (체력×2.5, 공격×1.5, 골드×2)';
+      default: return '';
+    }
+  }
+
+  function renderLobby(){
+    topGoldVal.textContent = Math.floor(meta.gold);
+    topLevelVal.textContent = totalLevel();
+    topRoundVal.textContent = getOperationDuration()+'초';
+    buildTree();
+  }
+
+  function showLobby(){ phase='lobby'; gameScreen.classList.remove('active'); lobbyScreen.classList.add('active'); renderLobby(); requestAnimationFrame(fitTree); }
+  function showGame(){ lobbyScreen.classList.remove('active'); gameScreen.classList.add('active'); }
+  startRoundBtn.addEventListener('click', ()=>{ showGame(); startRound(); });
+  lobbyBtn.addEventListener('click', showLobby);
+
+  // ============================================================
+  // 6) 전투 라운드 상태 (전투 로직은 기존과 동일)
+  // ============================================================
+  let phase='lobby';
+  let base, enemies, soldiers, particles, coins;
+  let gold, kills, elapsed, wave, timeLeft, ROUND_DURATION;
+  let spawnTimer, spawnInterval;
+  let autoTimer;
+  let running;
+  let holding, manualSpawnCooldown;
+  let earnedThisRound=0;
+  let mouseX=-9999, mouseY=-9999;
+  // 최근 커서 이동 경로를 이벤트 단위로 저장한다.
+  // 프레임 사이를 빠르게 지나가도 선분 전체를 검사해 코인 누락을 막는다.
+  let cursorTrail=[];
+  const CURSOR_TRAIL_LIFETIME=0.12;
+  const DIRECT_PICKUP_SWEEP_RADIUS=20;
+  let PICKUP_RADIUS=24;
+  let manualSpawnCount=0;
+  let repairUsedThisRound=false, repairActive=false, repairTimer=0, repairPerSec=0, repairGuardTimer=0;
+  let comboCount=0, comboTimer=0;
+  let coinPityBonus=0;
+  let commanderSpawned=false, commanderDefeated=false, commanderBonus=0, burstTimer=4;
+  const COMMANDER_DEFEAT_BONUS=30;
+  let commandState='idle';
+  let commandTimer=0;
+  let commandAtkSpeedTimer=0, overloadTimer=0, manualLockTimer=0;
+  let gameSpeedMult=1;
+  let soldierSeq=0;
+  let roundEnding=false, roundEndGrace=0;
+  const GOLDEN_ANGLE=2.399963;
+
+  function fmtTime(t){ t=Math.max(0,Math.ceil(t)); const m=Math.floor(t/60), s=t%60; return (m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
+  function currentPhaseIndex(){
+    if(elapsed<15) return 0; if(elapsed<20) return 1; if(elapsed<25) return 2;
+    if(elapsed<30) return 3; if(elapsed<35) return 4; if(elapsed<40) return 5; return 6;
+  }
+
+  function startRound(){
+    resize();
+    ROUND_DURATION = getOperationDuration();
+    base = { x:cx, y:cy, radius:34, hp:0, maxHp:getBaseMaxHp() };
+    base.hp = base.maxHp;
+    enemies=[]; soldiers=[]; particles=[]; coins=[];
+    gold=0; kills=0; elapsed=0; wave=1;
+    timeLeft=ROUND_DURATION; earnedThisRound=0;
+    spawnTimer=0; spawnInterval=1.0;
+    autoTimer=0; running=true; holding=false; manualSpawnCooldown=0;
+    // 새 라운드에서는 이전 화면의 커서 궤적을 이어 쓰지 않는다.
+    cursorTrail=[];
+    PICKUP_RADIUS=getPickupRadius();
+    manualSpawnCount=0;
+    repairUsedThisRound=false; repairActive=false; repairTimer=0; repairGuardTimer=0;
+    comboCount=0; comboTimer=0;
+    coinPityBonus=0;
+    commanderSpawned=false; commanderDefeated=false; commanderBonus=0; burstTimer=4;
+    commandState = ROUND_DURATION>=25 ? 'idle' : 'none';
+    commandTimer=0; commandAtkSpeedTimer=0; overloadTimer=0; manualLockTimer=0;
+    gameSpeedMult=1;
+    roundEnding=false; roundEndGrace=0;
+    cmdBtn.classList.remove('show'); cmdPanel.classList.remove('show');
+    phase='round';
+    overlay.classList.remove('show');
+    updateHud();
+    spawnEnemy(true);
+  }
+
+  function updateHud(){
+    goldVal.textContent = Math.floor(gold);
+    waveVal.textContent = wave;
+    troopVal.textContent = soldiers.length;
+    timeVal.textContent = fmtTime(timeLeft);
+    timeVal.classList.toggle('low', timeLeft<=5);
+    const pct = Math.max(0, Math.min(100, (timeLeft/ROUND_DURATION)*100));
+    roundBarFill.style.width = pct+'%';
+    roundBarFill.style.background = timeLeft<=5 ? 'linear-gradient(90deg,#e0483f,#ff7a6e)' : 'linear-gradient(90deg,#3fbf7f,#e8a33d)';
+  }
+
+  function pointFromEvent(e){
+    const rect = canvas.getBoundingClientRect();
+    if(e.touches && e.touches.length) return {x:e.touches[0].clientX-rect.left, y:e.touches[0].clientY-rect.top};
+    return {x:e.clientX-rect.left, y:e.clientY-rect.top};
+  }
+  function cursorIsAvailable(x,y){
+    return Number.isFinite(x) && Number.isFinite(y) && x>-9000 && y>-9000;
+  }
+  function setCursorPoint(p){
+    const now=performance.now()/1000;
+    // 화면에 새로 들어왔을 때 이전 위치와 이어지는 긴 가짜 선분이 생기지 않게 궤적을 초기화한다.
+    if(!cursorIsAvailable(mouseX,mouseY)) cursorTrail=[];
+    mouseX=p.x; mouseY=p.y;
+
+    const lastPoint=cursorTrail[cursorTrail.length-1];
+    if(!lastPoint || Math.hypot(lastPoint.x-p.x,lastPoint.y-p.y)>0.25){
+      cursorTrail.push({x:p.x,y:p.y,t:now});
+      if(cursorTrail.length>64) cursorTrail.splice(0,cursorTrail.length-64);
+    } else {
+      lastPoint.t=now;
+    }
+  }
+  function pointToSegmentDistance(px,py,ax,ay,bx,by){
+    const abx=bx-ax, aby=by-ay;
+    const lenSq=abx*abx+aby*aby;
+    if(lenSq<=0.0001) return Math.hypot(px-ax,py-ay);
+    const t=Math.max(0,Math.min(1,((px-ax)*abx+(py-ay)*aby)/lenSq));
+    const qx=ax+abx*t, qy=ay+aby*t;
+    return Math.hypot(px-qx,py-qy);
+  }
+  function pruneCursorTrail(now){
+    const cutoff=now-CURSOR_TRAIL_LIFETIME;
+    while(cursorTrail.length>1 && cursorTrail[1].t<cutoff) cursorTrail.shift();
+  }
+  function distanceToRecentCursorPath(px,py){
+    if(!cursorIsAvailable(mouseX,mouseY)) return Infinity;
+    if(cursorTrail.length===0) return Math.hypot(px-mouseX,py-mouseY);
+    if(cursorTrail.length===1) return Math.hypot(px-cursorTrail[0].x,py-cursorTrail[0].y);
+
+    let best=Infinity;
+    for(let i=1;i<cursorTrail.length;i++){
+      const a=cursorTrail[i-1], b=cursorTrail[i];
+      const d=pointToSegmentDistance(px,py,a.x,a.y,b.x,b.y);
+      if(d<best) best=d;
+    }
+    return Math.min(best,Math.hypot(px-mouseX,py-mouseY));
+  }
+  function tryStartHold(e){
+    if(!running || phase!=='round' || commandState==='open') return;
+    const p = pointFromEvent(e);
+    setCursorPoint(p);
+    if(Math.hypot(p.x-base.x, p.y-base.y) <= base.radius+14){
+      holding = true;
+      // 첫 입력은 즉시 반응하되, 이후에는 누르기를 떼어도 유지되는 공용 쿨다운을 사용한다.
+      // 따라서 빠르게 눌렀다 떼는 방식으로 소환 간격을 우회할 수 없다.
+      if(manualSpawnCooldown<=0 && manualLockTimer<=0){
+        spawnSoldier('manual');
+        manualSpawnCooldown = getManualSpawnInterval();
+      }
+    }
+  }
+  function stopHold(){ holding=false; }
+  function clearCursor(){
+    mouseX=-9999; mouseY=-9999; cursorTrail=[];
+  }
+  canvas.addEventListener('mousedown', tryStartHold);
+  canvas.addEventListener('touchstart', (e)=>{ tryStartHold(e); }, {passive:true});
+  window.addEventListener('mouseup', stopHold);
+  window.addEventListener('touchend', stopHold);
+  window.addEventListener('touchcancel', stopHold);
+  canvas.addEventListener('mouseleave', stopHold);
+  canvas.addEventListener('mousemove', (e)=>{ setCursorPoint(pointFromEvent(e)); });
+  canvas.addEventListener('touchmove', (e)=>{ setCursorPoint(pointFromEvent(e)); }, {passive:true});
+  canvas.addEventListener('mouseleave', clearCursor);
+
+  function spawnSoldier(source){
+    const ang = Math.random()*Math.PI*2;
+    soldierSeq++;
+    const hp = 22*getSoldierHpMult(), dmg = 6*getSoldierDamageMult();
+    soldiers.push({
+      x: base.x+Math.cos(ang)*40, y: base.y+Math.sin(ang)*40,
+      hp, maxHp:hp, dmg, speed:60*getSoldierSpeedMult(), range:16,
+      atkCd:0, target:null, spawnTime:elapsed, fromReserve: source==='reserve',
+      guardAngle: soldierSeq*GOLDEN_ANGLE, approachAngle: Math.random()*Math.PI*2
+    });
+    updateHud();
+    if(source==='manual'){
+      manualSpawnCount++;
+      const every = getReserveForceEvery();
+      if(every>0 && manualSpawnCount%every===0){
+        spawnSoldier('reserve');
+        spawnBanner(base.x, base.y-40, '예비 병력!', '#9bdc9b');
+      }
+    }
+  }
+
+  function spawnEnemy(closeStart, forcedKind){
+    let x,y;
+    if(closeStart){
+      const ang = Math.random()*Math.PI*2;
+      x = base.x+Math.cos(ang)*Math.max(160, Math.min(W,H)*0.32);
+      y = base.y+Math.sin(ang)*Math.max(160, Math.min(W,H)*0.32);
+    } else {
+      const edge = Math.floor(Math.random()*4), pad=20;
+      if(edge===0){ x=Math.random()*W; y=-pad; }
+      else if(edge===1){ x=W+pad; y=Math.random()*H; }
+      else if(edge===2){ x=Math.random()*W; y=H+pad; }
+      else { x=-pad; y=Math.random()*H; }
+    }
+    const phaseIdx = currentPhaseIndex();
+    const t = elapsed/25;
+    let hp = 14+wave*3.5+t*5, speed = 34+Math.random()*12+Math.min(26,wave*1.1), dmg = 7+Math.min(18,wave*0.7);
+    const goldBase = 1;
+    let kind = forcedKind || 'normal';
+    if(!forcedKind){
+      const roll = Math.random();
+      // 적 종류의 첫 등장 시점을 기존보다 한 단계(5초) 앞당긴다.
+      // 15초 이후: 빠른 적 22%
+      // 20초 이후: 빠른 적 22% + 장갑 적 15% + 일반 적 63%
+      // 누적 확률 구간을 사용해 빠른 적 판정과 장갑 적 판정이 겹치지 않게 한다.
+      if(phaseIdx>=2){
+        if(roll<0.22) kind='fast';
+        else if(roll<0.37) kind='armored';
+      } else if(phaseIdx>=1 && roll<0.22){
+        kind='fast';
+      }
+    }
+    if(kind==='fast'){ speed*=1.6; hp*=0.75; }
+    if(kind==='armored'){ hp*=2.2; speed*=0.65; dmg*=1.12; }
+    let elite=false, eliteMult=1;
+    if(kind!=='commander' && Math.random()*100 < getEliteChancePct(phaseIdx)){
+      elite=true; hp*=2.5; dmg*=1.5; speed*=0.9; eliteMult=2;
+    }
+    if(kind==='commander'){ hp*=10; dmg*=2.2; speed*=0.82; eliteMult=3; }
+
+    let soldierDmg=dmg*0.45, soldierAtkInterval=0.72, soldierHitCount=1;
+    if(kind==='fast'){ soldierDmg=dmg*0.32; soldierAtkInterval=0.38; }
+    else if(kind==='armored'){ soldierDmg=dmg*0.62; soldierAtkInterval=0.90; }
+    else if(kind==='commander'){ soldierDmg=dmg*0.58; soldierAtkInterval=1.10; soldierHitCount=3; }
+    soldierDmg=Math.max(2, soldierDmg);
+
+    enemies.push({x,y,hp,maxHp:hp,speed,dmg,gold:goldBase,atkCd:0,
+      elite:(elite||kind==='commander'),eliteMult,kind,
+      soldierDmg,soldierAtkInterval,soldierHitCount});
+  }
+
+  function spawnPulse(x,y,color){ particles.push({x,y,r:base.radius,max:base.radius+40,color,life:0.5,t:0,type:'ring'}); }
+  function spawnHit(x,y,color){ particles.push({x,y,r:3,color,life:0.25,t:0,type:'spark'}); }
+  function spawnGoldPop(x,y,amount,color){ particles.push({x,y,text:'+'+amount,color:color||'#e8a33d',life:0.7,t:0,type:'text',vy:-30}); }
+  function spawnBanner(x,y,text,color){ particles.push({x,y,text,color,life:1.2,t:0,type:'text',vy:-18}); }
+  const COIN_TYPES = {
+    yellow:{value:1, pop:'#e8a33d'},
+    blue:{value:5, pop:'#52b9ff'},
+    purple:{value:20, pop:'#b36cff'},
+    red:{value:50, pop:'#ff5353'}
+  };
+  function rollCoinDrop(){
+    const jackpotChance=getJackpotCoinChancePct();
+    if(jackpotChance>0 && Math.random()*100<jackpotChance){ coinPityBonus=0; return 'red'; }
+
+    const premiumChance=getPremiumCoinChancePct();
+    if(premiumChance>0 && Math.random()*100 < Math.min(35,premiumChance+coinPityBonus)){
+      coinPityBonus=0;
+      const rareChance=getRareCoinUpgradeChancePct();
+      if(rareChance>0 && Math.random()*100<rareChance) return 'purple';
+      return 'blue';
+    }
+
+    const pityStep=getLuckPityStepPct();
+    if(pityStep>0) coinPityBonus=Math.min(10,coinPityBonus+pityStep);
+    return 'yellow';
+  }
+  function spawnCoin(x,y,value,eliteMult,options={}){
+    const ang=Number.isFinite(options.angle)?options.angle:Math.random()*Math.PI*2;
+    const minDist=Number.isFinite(options.minDist)?options.minDist:10;
+    const maxDist=Number.isFinite(options.maxDist)?Math.max(minDist,options.maxDist):28;
+    const dist=minDist+Math.random()*(maxDist-minDist);
+    const coinType=options.coinType||rollCoinDrop();
+    const coinDef=COIN_TYPES[coinType]||COIN_TYPES.yellow;
+    coins.push({x,y,tx:x+Math.cos(ang)*dist, ty:y+Math.sin(ang)*dist,
+      value:coinType==='yellow'?(value||1):coinDef.value, coinType, eliteMult:eliteMult||1,
+      t:0, popDur:Number.isFinite(options.popDur)?options.popDur:0.35, bob:Math.random()*Math.PI*2,
+      magnetVx:0, magnetVy:0, magnetized:false, magnetGlow:0,
+      cursorVx:0, cursorVy:0, cursorMagnetized:false, cursorGlow:0,
+      cursorCaptureTimer:0});
+  }
+
+  function spawnEnemyCoinDrops(defeated){
+    let count=1;
+    if(defeated.kind==='commander') count=8+Math.floor(Math.random()*5); // 8~12개
+    else if(defeated.elite) count=3;
+    else if(defeated.kind==='armored') count=2;
+    else if(defeated.kind==='fast') count=Math.random()<0.20?2:1;
+
+    // 색깔 코인 확률은 적 한 마리당 한 번만 판정한다.
+    // 다중 드롭의 나머지 코인은 일반 코인으로 만들어 희귀 코인 가치가 과도하게 폭증하지 않게 한다.
+    const featuredType=rollCoinDrop();
+    const commander=defeated.kind==='commander';
+    const startAngle=Math.random()*Math.PI*2;
+
+    for(let i=0;i<count;i++){
+      const angle=commander
+        ? startAngle+(Math.PI*2*i/count)+(Math.random()-0.5)*0.20
+        : Math.random()*Math.PI*2;
+      spawnCoin(defeated.x,defeated.y,defeated.gold,defeated.eliteMult,{
+        coinType:i===0?featuredType:'yellow',
+        angle,
+        minDist:commander?48:10,
+        maxDist:commander?108:(defeated.elite?44:30),
+        popDur:commander?0.55+Math.random()*0.20:0.35+Math.random()*0.08
+      });
+    }
+
+    if(commander){
+      particles.push({x:defeated.x,y:defeated.y,r:10,max:120,color:'#e8a33d',life:0.72,t:0,type:'ring'});
+      particles.push({x:defeated.x,y:defeated.y,r:24,max:150,color:'#ffcf7a',life:0.90,t:0,type:'ring'});
+      spawnBanner(defeated.x,defeated.y-34,'코인 폭발!','#ffcf7a');
+    }
+  }
+  function separate(units,minDist){
+    for(let i=0;i<units.length;i++) for(let j=i+1;j<units.length;j++){
+      const a=units[i], b=units[j]; const dx=b.x-a.x, dy=b.y-a.y; let d=Math.hypot(dx,dy);
+      if(d<minDist){ if(d===0)d=0.01; const ov=(minDist-d)/2, nx=dx/d, ny=dy/d; a.x-=nx*ov; a.y-=ny*ov; b.x+=nx*ov; b.y+=ny*ov; }
+    }
+  }
+
+  const COMMAND_DEFS = {
+    reinforce:{ name:'긴급 증원', desc:'병사 3기 즉시 생성' },
+    rapidFire:{ name:'집중 포화', desc:'8초간 전체 공격속도 +30%' },
+    recoveryWave:{ name:'회수 파동', desc:'화면 골드 즉시 회수 + 체력 12% 회복' },
+    overload:{ name:'생산 과부하', desc:'8초간 수동 소환 50% · 자동 생산 25% 가속 (이후 1초 정지)' }
+  };
+  function maybeShowCommandBtn(){
+    if(commandState==='idle' && elapsed >= ROUND_DURATION/2){ commandState='ready'; cmdBtn.classList.add('show'); }
+  }
+  cmdBtn.addEventListener('click', ()=>{
+    if(commandState!=='ready') return;
+    commandState='open'; gameSpeedMult=0.2; commandTimer=3;
+    cmdBtn.classList.remove('show');
+    const pool=Object.keys(COMMAND_DEFS).sort(()=>Math.random()-0.5).slice(0,3);
+    cmdChoices.innerHTML='';
+    pool.forEach(key=>{
+      const b=document.createElement('button');
+      b.innerHTML='<b>'+COMMAND_DEFS[key].name+'</b>'+COMMAND_DEFS[key].desc;
+      b.addEventListener('click', ()=> pickCommand(key));
+      cmdChoices.appendChild(b);
+    });
+    cmdPanel.classList.add('show');
+  });
+  function pickCommand(key){ applyCommand(key); closeCommandUI(); }
+  function closeCommandUI(){ commandState='done'; gameSpeedMult=1; cmdPanel.classList.remove('show'); }
+  function applyCommand(key){
+    if(key==='reinforce'){ for(let i=0;i<3;i++) spawnSoldier('command'); }
+    else if(key==='rapidFire'){ commandAtkSpeedTimer=8; }
+    else if(key==='recoveryWave'){
+      for(let i=coins.length-1;i>=0;i--){
+        const c=coins[i]; const gained=c.value*getGoldMultiplier(c.eliteMult);
+        gold+=gained; earnedThisRound+=gained;
+        const shown=Math.max(1,Math.floor(gained));
+        spawnGoldPop(c.tx,c.ty,shown,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop); coins.splice(i,1);
+      }
+      base.hp = Math.min(base.maxHp, base.hp+base.maxHp*0.12);
+      spawnBanner(base.x, base.y-60, '회수 파동!', '#4fa3e3');
+    } else if(key==='overload'){ overloadTimer=8; manualLockTimer=0; }
+  }
+
+  function activateEmergencyRepair(fromLethalHit){
+    if(repairUsedThisRound || L('emergencyRepair')<=0) return false;
+    repairUsedThisRound=true;
+    repairActive=true;
+    repairTimer=4;
+    repairGuardTimer=fromLethalHit?0.75:0;
+    const healPct=getEmergencyRepairHealPct();
+    repairPerSec=(base.maxHp*healPct/100)/4;
+    if(fromLethalHit) base.hp=Math.max(1,base.hp);
+    spawnBanner(base.x, base.y-60, fromLethalHit?'비상 수리 · 치명타 방어':'비상 수리 가동', '#3fbf7f');
+    return true;
+  }
+
+  function damageBase(amount){
+    if(repairGuardTimer>0) return;
+    if(base.hp-amount<=0 && !repairUsedThisRound && L('emergencyRepair')>0){
+      base.hp=1;
+      activateEmergencyRepair(true);
+      return;
+    }
+    base.hp-=amount;
+  }
+
+  function update(rawDt){
+    if(!running) return;
+    if(commandState==='open'){ commandTimer -= rawDt; if(commandTimer<=0) closeCommandUI(); }
+    const dt = rawDt*gameSpeedMult;
+    elapsed += dt;
+
+    if(!roundEnding){
+      timeLeft -= dt;
+      if(timeLeft<=0){ timeLeft=0; roundEnding=true; roundEndGrace=1.8; }
+    }
+    updateHud();
+    if(roundEnding){
+      roundEndGrace -= dt;
+      if(roundEndGrace<=0){ endRound(true); return; }
+    }
+
+    maybeShowCommandBtn();
+    comboTimer=Math.max(0,comboTimer-dt); if(comboTimer<=0) comboCount=0;
+    commandAtkSpeedTimer=Math.max(0,commandAtkSpeedTimer-dt);
+    if(overloadTimer>0){ overloadTimer-=dt; if(overloadTimer<=0){ overloadTimer=0; manualLockTimer=1; } }
+    else if(manualLockTimer>0){ manualLockTimer=Math.max(0,manualLockTimer-dt); }
+
+    repairGuardTimer=Math.max(0,repairGuardTimer-dt);
+    if(repairActive){
+      base.hp=Math.min(base.maxHp, base.hp+repairPerSec*dt); repairTimer-=dt;
+      if(repairTimer<=0) repairActive=false;
+    }
+    if(!repairUsedThisRound && L('emergencyRepair')>0 && base.hp<=base.maxHp*0.3){
+      activateEmergencyRepair(false);
+    }
+
+    const phaseIdx = currentPhaseIndex();
+    if(!roundEnding){
+      spawnInterval = Math.max(0.55, 1.15-elapsed*0.0065);
+      spawnTimer += dt;
+      if(spawnTimer>=spawnInterval && phaseIdx<6){
+        spawnTimer=0; spawnEnemy(false);
+        if(phaseIdx>=1 && Math.random()<0.3) spawnEnemy(false);
+      }
+      if(phaseIdx===4){
+        burstTimer -= dt;
+        if(burstTimer<=0){ burstTimer=4; for(let i=0;i<4;i++) spawnEnemy(false); }
+      }
+      // 지휘관도 한 단계 앞당겨 40초 작전의 35초 지점부터 등장한다.
+      if(!commanderSpawned && elapsed>=35 && ROUND_DURATION>=40){
+        commanderSpawned=true;
+        warnBanner.textContent='⚠ 지휘관 최종 공세'; warnBanner.classList.remove('show'); void warnBanner.offsetWidth; warnBanner.classList.add('show');
+        spawnBanner(base.x, base.y-76, '최종 목표: 지휘관 처치', '#e8a33d');
+        spawnEnemy(false, 'commander');
+      }
+    }
+    wave = 1+Math.floor(elapsed/8);
+
+    const autoInt = getAutoSpawnInterval();
+    if(autoInt){ autoTimer+=dt; if(autoTimer>=autoInt){ autoTimer=0; spawnSoldier('auto'); } }
+
+    // 수동 소환 쿨다운은 마우스를 떼어도 계속 흐른다.
+    // 재클릭은 쿨다운을 초기화하지 않으므로 연타 소환이 불가능하다.
+    manualSpawnCooldown = Math.max(0, manualSpawnCooldown-dt);
+    if(holding && manualLockTimer<=0 && manualSpawnCooldown<=0){
+      spawnSoldier('manual');
+      manualSpawnCooldown = getManualSpawnInterval();
+    }
+
+    const targetCount = new Map();
+    for(const s of soldiers){ if(s.target && s.target.hp>0) targetCount.set(s.target,(targetCount.get(s.target)||0)+1); }
+    const focusBonus = getFocusFireBonusPct();
+    function pickTarget(s){
+      let best=null, bestScore=Infinity;
+      for(const en of enemies){
+        const d=Math.hypot(en.x-s.x, en.y-s.y); const assigned=targetCount.get(en)||0;
+        const score=d+assigned*70; if(score<bestScore){bestScore=score; best=en;}
+      }
+      return best;
+    }
+    const assaultBuff = getAssaultCommand();
+    for(const s of soldiers){
+      if(!s.target || s.target.hp<=0 || enemies.indexOf(s.target)===-1) s.target = pickTarget(s);
+      let spdMult=1, atkSpdMult=1;
+      const assaultActive = assaultBuff && (elapsed-s.spawnTime)<8;
+      if(assaultActive){ spdMult*=(1+assaultBuff.speed/100); atkSpdMult*=(1+assaultBuff.atk/100); }
+      if(commandAtkSpeedTimer>0) atkSpdMult*=1.30;
+      const effSpeed = s.speed*spdMult;
+      s.atkCd = Math.max(0, s.atkCd-dt);
+      if(s.target){
+        const ox=Math.cos(s.approachAngle)*14, oy=Math.sin(s.approachAngle)*14;
+        const dx=(s.target.x+ox)-s.x, dy=(s.target.y+oy)-s.y; const d=Math.hypot(dx,dy); const reach=s.range+10;
+        if(d>reach){ s.x+=(dx/d)*effSpeed*dt; s.y+=(dy/d)*effSpeed*dt; }
+        else if(s.atkCd<=0){
+          let dmg=s.dmg;
+          if(focusBonus>0 && (targetCount.get(s.target)||0)>=2) dmg*=(1+focusBonus/100);
+          s.target.hp -= dmg; s.atkCd = 0.5/atkSpdMult;
+          spawnHit(s.target.x, s.target.y, '#4fa3e3');
+        }
+      } else {
+        const gx=base.x+Math.cos(s.guardAngle)*90, gy=base.y+Math.sin(s.guardAngle)*90;
+        const d=Math.hypot(s.x-gx, s.y-gy);
+        if(d>10){ s.x+=(gx-s.x)/d*effSpeed*0.45*dt; s.y+=(gy-s.y)/d*effSpeed*0.45*dt; }
+      }
+      s._assaultActive = assaultActive; // 시각 표시용
+    }
+
+    for(const en of enemies){
+      let engaged=null, ed=Infinity;
+      for(const s of soldiers){ const d=Math.hypot(s.x-en.x, s.y-en.y); if(d<26 && d<ed){ ed=d; engaged=s; } }
+      if(engaged){
+        en.atkCd=Math.max(0, en.atkCd-dt);
+        if(en.atkCd<=0){
+          if(en.soldierHitCount>1){
+            const nearby=soldiers
+              .map(s=>({s,d:Math.hypot(s.x-en.x,s.y-en.y)}))
+              .filter(v=>v.d<=62)
+              .sort((a,b)=>a.d-b.d)
+              .slice(0,en.soldierHitCount);
+            for(const v of nearby){ v.s.hp-=en.soldierDmg; spawnHit(v.s.x,v.s.y,'#e0483f'); }
+            spawnPulse(en.x,en.y,'#e0483f');
+          } else {
+            engaged.hp-=en.soldierDmg;
+            spawnHit(engaged.x,engaged.y,'#e0483f');
+          }
+          en.atkCd=en.soldierAtkInterval;
+        }
+        continue;
+      }
+      const dx=base.x-en.x, dy=base.y-en.y, d=Math.hypot(dx,dy);
+      if(d>base.radius+8){ en.x+=(dx/d)*en.speed*dt; en.y+=(dy/d)*en.speed*dt; }
+      else {
+        en.atkCd=Math.max(0, en.atkCd-dt);
+        if(en.atkCd<=0){
+          damageBase(en.dmg); en.atkCd=1.0; spawnPulse(base.x, base.y, '#e0483f');
+          if(base.hp<=0){ endRound(false); return; }
+        }
+      }
+    }
+
+    separate(soldiers,20); separate(enemies,18);
+
+    const mag = getMagnetic();
+    const cursorMagnetLevel = L('pickupRadius');
+    const cursorAvailable=cursorIsAvailable(mouseX,mouseY);
+    pruneCursorTrail(performance.now()/1000);
+
+    for(let i=coins.length-1;i>=0;i--){
+      const c=coins[i]; c.t+=dt; const popped=c.t>=c.popDur;
+      let autoCollected=false;
+      let cursorCollected=false;
+
+      const cursorDx=mouseX-c.tx, cursorDy=mouseY-c.ty;
+      const cursorDist=cursorAvailable?(Math.hypot(cursorDx,cursorDy)||1):Infinity;
+      const recentPathDistance=cursorAvailable?distanceToRecentCursorPath(c.tx,c.ty):Infinity;
+
+      // 모든 레벨 공통 직접 수집 판정:
+      // 커서의 현재 점이 아니라 최근 0.12초 동안 지나간 '두께 있는 통로'를 검사한다.
+      // 따라서 코인을 빠르게 쓸어 지나가도 실제로 가까이 스쳤다면 즉시 획득된다.
+      if(popped && cursorAvailable && recentPathDistance<=DIRECT_PICKUP_SWEEP_RADIUS){
+        cursorCollected=true;
+        c.cursorMagnetized=false;
+        c.cursorCaptureTimer=0;
+        c.cursorGlow=0;
+      }
+
+      // Lv.1 이상 커서 자석:
+      // 최근 이동 경로가 자석 범위를 통과하면 코인을 포착한다.
+      // 한 번 포착된 코인은 시간이나 거리 때문에 놓지 않고, 획득되거나 커서가 화면 밖으로 나갈 때까지 추적한다.
+      if(!cursorCollected && popped && cursorAvailable && cursorMagnetLevel>0){
+        if(recentPathDistance<=PICKUP_RADIUS) c.cursorMagnetized=true;
+
+        if(c.cursorMagnetized){
+          c.cursorGlow=Math.min(1,(c.cursorGlow||0)+dt*5);
+          c.magnetized=false;
+          c.magnetGlow=Math.max(0,(c.magnetGlow||0)-dt*5);
+
+          const normalized=Math.min(1,cursorDist/PICKUP_RADIUS);
+          const proximity=1-normalized;
+          // 멀어졌을 때는 추격력을 높이고, 가까워지면 부드럽게 감속한다.
+          const catchupBoost=cursorDist>PICKUP_RADIUS
+            ? Math.min(14,5+(cursorDist/PICKUP_RADIUS)*2.4)
+            : 0;
+          const pullRate=3.4+8.8*Math.pow(proximity,1.5)+catchupBoost;
+          const follow=1-Math.exp(-pullRate*dt);
+          c.tx+=cursorDx*follow;
+          c.ty+=cursorDy*follow;
+
+          // 현재 커서뿐 아니라 최근 이동 경로에 코인이 닿아도 획득 처리한다.
+          const afterMovePathDistance=distanceToRecentCursorPath(c.tx,c.ty);
+          if(cursorDist<=9 || afterMovePathDistance<=10) cursorCollected=true;
+        } else {
+          c.cursorGlow=Math.max(0,(c.cursorGlow||0)-dt*6);
+        }
+      } else if(cursorMagnetLevel===0 || !cursorAvailable || !popped){
+        c.cursorMagnetized=false;
+        c.cursorCaptureTimer=0;
+        c.cursorGlow=cursorMagnetLevel===0?0:Math.max(0,(c.cursorGlow||0)-dt*6);
+      }
+
+      // 기지 수집 반경: 커서가 잡지 않은 코인만 기지로 회수한다.
+      // 바깥에서는 천천히 출발하고, 기지에 가까워질수록 점진적으로 빨라진다.
+      if(!cursorCollected && !c.cursorMagnetized && popped && mag){
+        const dxb=base.x-c.tx, dyb=base.y-c.ty;
+        const distBase=Math.hypot(dxb,dyb)||1;
+        const releaseRange=mag.range*1.06;
+        const baseActive=distBase<=mag.range || (c.magnetized && distBase<=releaseRange);
+        if(baseActive){
+          c.magnetized=true;
+          c.magnetGlow=Math.min(1,(c.magnetGlow||0)+dt*3.5);
+          const proximity=1-Math.min(1,distBase/mag.range);
+          const speed=mag.speed*(0.48+1.35*Math.pow(proximity,1.7))*(0.35+0.65*c.magnetGlow);
+          const move=Math.min(distBase,speed*dt);
+          c.tx+=dxb/distBase*move;
+          c.ty+=dyb/distBase*move;
+          if(Math.hypot(c.tx-base.x,c.ty-base.y)<=base.radius+7) autoCollected=true;
+        } else {
+          c.magnetized=false;
+          c.magnetGlow=Math.max(0,(c.magnetGlow||0)-dt*4);
+        }
+      } else if(!mag || c.cursorMagnetized || cursorCollected){
+        c.magnetized=false;
+        c.magnetGlow=Math.max(0,(c.magnetGlow||0)-dt*5);
+      }
+
+      if(popped && (cursorCollected || autoCollected)){
+        const gained=c.value*getGoldMultiplier(c.eliteMult);
+        gold+=gained; earnedThisRound+=gained;
+        const shown=Math.max(1,Math.floor(gained));
+        const popX=autoCollected?base.x:(cursorAvailable?mouseX:c.tx);
+        const popY=autoCollected?base.y-12:(cursorAvailable?mouseY-10:c.ty);
+        spawnGoldPop(popX, popY, shown,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop);
+        if(autoCollected) spawnPulse(base.x,base.y,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop);
+        coins.splice(i,1);
+      }
+    }
+
+    for(let i=enemies.length-1;i>=0;i--){
+      if(enemies[i].hp<=0){
+        const defeated=enemies[i];
+        kills++;
+        comboCount = comboTimer>0 ? comboCount+1 : 1; comboTimer=3;
+        spawnEnemyCoinDrops(defeated);
+        if(defeated.kind==='commander'){
+          commanderDefeated=true;
+          commanderBonus=COMMANDER_DEFEAT_BONUS;
+          gold+=commanderBonus;
+          earnedThisRound+=commanderBonus;
+          spawnGoldPop(defeated.x,defeated.y,commanderBonus,'#e8a33d');
+          spawnBanner(base.x,base.y-72,'지휘관 격파 보너스 +'+commanderBonus,'#e8a33d');
+        }
+        enemies.splice(i,1);
+      }
+    }
+    for(let i=soldiers.length-1;i>=0;i--){ if(soldiers[i].hp<=0){ spawnHit(soldiers[i].x, soldiers[i].y, '#7d8ba0'); soldiers.splice(i,1); } }
+    for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.t+=dt; if(p.vy) p.y+=p.vy*dt; if(p.t>=p.life) particles.splice(i,1); }
+
+    updateHud();
+  }
+
+  function endRound(success){
+    if(!running) return;
+    running=false;
+    cmdBtn.classList.remove('show'); cmdPanel.classList.remove('show'); commandState='done'; gameSpeedMult=1;
+    const survived = Math.floor(elapsed);
+    const collectedGold=Math.floor(gold);
+    const settlementRate=success?1.00:0.65;
+    const settledGold=Math.floor(collectedGold*settlementRate);
+    meta.gold += settledGold;
+    meta.records.rounds++;
+    meta.records.bestWave = Math.max(meta.records.bestWave, wave);
+    meta.records.bestKills = Math.max(meta.records.bestKills, kills);
+    meta.records.bestTime = Math.max(meta.records.bestTime, survived);
+    persistSave();
+
+    overlayTitle.textContent = success ? '라운드 클리어' : '거점 함락';
+    overlayTitle.style.color = success ? 'var(--hp)' : 'var(--enemy)';
+    finalTime.textContent = survived; finalWave.textContent = wave; finalKills.textContent = kills;
+    goldEarnedEl.textContent = settledGold;
+    roundRewardNoteEl.textContent = success
+      ? '수집 '+collectedGold+(commanderDefeated?' · 지휘관 격파 포함':'')
+      : '수집 '+collectedGold+' · 함락 정산 65%';
+    goldBankedEl.textContent = Math.floor(meta.gold);
+    overlay.classList.add('show');
+  }
+
+  // ---------- drawing ----------
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.save(); ctx.strokeStyle='rgba(34,48,63,0.35)'; ctx.lineWidth=1;
+    const gap=40;
+    for(let x=(cx%gap); x<W; x+=gap){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=(cy%gap); y<H; y+=gap){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    ctx.restore();
+
+    ctx.save(); ctx.translate(base.x, base.y);
+    const sweepAngle=(elapsed*0.8)%(Math.PI*2);
+    const grad = ctx.createConicGradient ? ctx.createConicGradient(sweepAngle,0,0) : null;
+    if(grad){ grad.addColorStop(0,'rgba(79,163,227,0.25)'); grad.addColorStop(0.12,'rgba(79,163,227,0)'); grad.addColorStop(1,'rgba(79,163,227,0)');
+      ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(0,0,220,0,Math.PI*2); ctx.fill(); }
+    ctx.restore();
+
+    ctx.save(); ctx.strokeStyle='rgba(79,163,227,0.15)'; ctx.lineWidth=1;
+    for(let r=70;r<=210;r+=70){ ctx.beginPath(); ctx.arc(base.x,base.y,r,0,Math.PI*2); ctx.stroke(); }
+    ctx.restore();
+
+    for(const p of particles){ const k=p.t/p.life;
+      if(p.type==='ring'){ ctx.save(); ctx.globalAlpha=1-k; ctx.strokeStyle=p.color; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r+(p.max-p.r)*k,0,Math.PI*2); ctx.stroke(); ctx.restore(); } }
+
+    for(const c of coins){
+      const k=Math.min(1,c.t/c.popDur), ex=1-Math.pow(1-k,3);
+      const x=c.x+(c.tx-c.x)*ex, arcY=-Math.sin(k*Math.PI)*18, y=c.y+(c.ty-c.y)*ex+arcY;
+      const bob = k>=1?Math.sin(elapsed*4+c.bob)*2:0;
+      const cursorMagnetLevel=L('pickupRadius');
+      const hoverRadius=cursorMagnetLevel>0?PICKUP_RADIUS:24;
+      const near = k>=1 && (c.cursorMagnetized || Math.hypot(mouseX-c.tx, mouseY-c.ty)<=hoverRadius);
+      const type=c.coinType||'yellow';
+
+      // 선으로 연결하거나 빙글 도는 연출은 제거하고, 끌리는 코인 자체에만 얇은 잔광을 준다.
+      if(k>=1 && c.cursorMagnetized){
+        const glow=Math.max(0,Math.min(1,c.cursorGlow||0));
+        ctx.save();
+        ctx.globalAlpha=0.08+glow*0.14;
+        ctx.beginPath(); ctx.arc(x,y+bob,(type==='red'?15:11)+glow*2.5,0,Math.PI*2);
+        ctx.fillStyle=(COIN_TYPES[type]||COIN_TYPES.yellow).pop;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if(k>=1 && c.magnetized){
+        const glow=Math.max(0,Math.min(1,c.magnetGlow||0));
+        ctx.save();
+        ctx.globalAlpha=0.07+glow*0.12;
+        ctx.beginPath(); ctx.arc(x,y+bob,(type==='red'?16:12)+glow*2.5,0,Math.PI*2);
+        ctx.fillStyle=(COIN_TYPES[type]||COIN_TYPES.yellow).pop;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.save(); ctx.translate(x,y+bob);
+      if(near){
+        ctx.beginPath(); ctx.arc(0,0,type==='red'?17:14,0,Math.PI*2);
+        ctx.fillStyle=type==='blue'?'rgba(82,185,255,.25)':type==='purple'?'rgba(179,108,255,.25)':type==='red'?'rgba(255,83,83,.28)':'rgba(232,163,61,.25)';
+        ctx.fill();
+      }
+      if(type==='yellow'){
+        ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2);
+        const g=ctx.createRadialGradient(-2,-2,1,0,0,7); g.addColorStop(0,'#fff0b8'); g.addColorStop(1,'#e8a33d');
+        ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=1; ctx.strokeStyle='#8a5a12'; ctx.stroke();
+      } else if(type==='blue'){
+        ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2);
+        const g=ctx.createRadialGradient(-2,-2,1,0,0,8); g.addColorStop(0,'#d9f4ff'); g.addColorStop(1,'#329ee8');
+        ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#9be3ff'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0,0,4.5,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,.75)'; ctx.lineWidth=1; ctx.stroke();
+      } else if(type==='purple'){
+        const r=9; ctx.beginPath();
+        for(let i=0;i<6;i++){ const a=-Math.PI/2+i*Math.PI/3, px=Math.cos(a)*r, py=Math.sin(a)*r; if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py); }
+        ctx.closePath();
+        const g=ctx.createRadialGradient(-2,-2,1,0,0,9); g.addColorStop(0,'#f1d9ff'); g.addColorStop(1,'#8c3ed1');
+        ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#d7a4ff'; ctx.stroke();
+        ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillRect(-1,-5,2,10); ctx.fillRect(-5,-1,10,2);
+      } else {
+        ctx.shadowColor='#ff4444'; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(0,0,11,0,Math.PI*2);
+        const g=ctx.createRadialGradient(-3,-3,1,0,0,11); g.addColorStop(0,'#ffd0b8'); g.addColorStop(.45,'#ff5a4f'); g.addColorStop(1,'#a50f18');
+        ctx.fillStyle=g; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ffd45e'; ctx.stroke();
+        ctx.shadowBlur=0; ctx.fillStyle='#fff3a0'; ctx.font='bold 9px Orbitron'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('★',0,1);
+      }
+      ctx.restore();
+    }
+
+    for(const s of soldiers){
+      ctx.save(); ctx.translate(s.x,s.y);
+      if(s._assaultActive){ ctx.strokeStyle='#ffd76b'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.stroke(); }
+      ctx.fillStyle='#4fa3e3';
+      ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(7,7); ctx.lineTo(-7,7); ctx.closePath(); ctx.fill();
+      const w=16; ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(-w/2,11,w,3);
+      ctx.fillStyle='#3fbf7f'; ctx.fillRect(-w/2,11,w*Math.max(0,s.hp/s.maxHp),3);
+      ctx.restore();
+    }
+
+    for(const en of enemies){
+      ctx.save(); ctx.translate(en.x,en.y);
+      let radius=8, col='#e0483f';
+      if(en.kind==='fast'){ radius=7; col='#5fd0e0'; }
+      if(en.kind==='armored'){ radius=10; col='#8a5a3f'; }
+      if(en.kind==='commander'){ radius=15; col='#7a1f1f'; }
+      if(en.elite){ radius+=3; }
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(0,0,radius,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = en.elite ? '#e8a33d' : '#3a0f0d'; ctx.lineWidth = en.elite?2.5:1.5; ctx.stroke();
+      if(en.elite){ ctx.fillStyle='#e8a33d'; ctx.font="700 9px 'Orbitron', sans-serif"; ctx.textAlign='center'; ctx.fillText('★', 0, -radius-6); }
+      if(en.kind==='commander'){
+        ctx.strokeStyle='rgba(224,72,63,.55)'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(0,0,radius+8+Math.sin(elapsed*4)*2,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle='#ff9b8f'; ctx.font="700 9px 'Orbitron', sans-serif"; ctx.textAlign='center';
+        ctx.fillText('지휘관',0,-radius-17);
+      }
+      const w=radius*2.2;
+      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(-w/2,radius+4,w,3);
+      ctx.fillStyle='#e0483f'; ctx.fillRect(-w/2,radius+4,w*Math.max(0,en.hp/en.maxHp),3);
+      ctx.restore();
+    }
+
+    ctx.save(); ctx.translate(base.x, base.y);
+    const pulse=1+Math.sin(elapsed*3)*0.02;
+    ctx.beginPath(); ctx.arc(0,0,base.radius*pulse,0,Math.PI*2);
+    const bgrad=ctx.createRadialGradient(0,0,4,0,0,base.radius*pulse);
+    bgrad.addColorStop(0,'#2a3a4c'); bgrad.addColorStop(1,'#141c26');
+    ctx.fillStyle=bgrad; ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle = base.hp/base.maxHp>0.3?'#e8a33d':'#e0483f'; ctx.stroke();
+    ctx.restore();
+
+    ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(-Math.PI/2);
+    ctx.lineWidth=5; ctx.strokeStyle='rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.arc(0,0,base.radius+10,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = base.hp/base.maxHp>0.3?'#3fbf7f':'#e0483f';
+    ctx.beginPath(); ctx.arc(0,0,base.radius+10,0,Math.PI*2*Math.max(0,base.hp/base.maxHp)); ctx.stroke();
+    ctx.restore();
+
+    for(const p of particles){ const k=p.t/p.life;
+      if(p.type==='spark'){ ctx.save(); ctx.globalAlpha=1-k; ctx.fillStyle=p.color; ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r*(1-k*0.5),0,Math.PI*2); ctx.fill(); ctx.restore(); }
+      else if(p.type==='text'){ ctx.save(); ctx.globalAlpha=1-k; ctx.fillStyle=p.color;
+        ctx.font="700 12px 'Rajdhani', sans-serif"; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y); ctx.restore(); } }
+
+    if(comboCount>1 && comboTimer>0){
+      ctx.save(); ctx.fillStyle='#e8a33d'; ctx.font="700 14px 'Orbitron', sans-serif"; ctx.textAlign='center';
+      ctx.fillText('콤보 x'+comboCount, base.x, base.y-base.radius-16); ctx.restore();
+    }
+
+    ctx.save(); ctx.fillStyle='#7d8ba0'; ctx.font="600 11px 'Rajdhani', sans-serif"; ctx.textAlign='center';
+    ctx.fillText(Math.max(0,Math.ceil(base.hp))+' / '+base.maxHp+' HP', base.x, base.y+base.radius+26);
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now-last)/1000);
+    last = now;
+    if(phase==='round'){ update(dt); draw(); }
+    requestAnimationFrame(loop);
+  }
+
+  renderLobby();
+  requestAnimationFrame(fitTree);
+  requestAnimationFrame(loop);
+  loadSave();
+})();
+</script>
 </body>
 </html>
