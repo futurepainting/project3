@@ -1,0 +1,12 @@
+Directional soldier sprites applied
+
+- 111.png: North
+- 222.png: North-East
+- 333.png: East
+- 444.png: South-East
+- 555.png: South
+- South-West, West, North-West: horizontal mirroring of 444/333/222
+- Applied to friendly soldier units (rifle, machine gun, shield share the current soldier body sprite)
+- Enemy soldiers keep the existing enemy sprite
+- Original PNG aspect ratios are preserved
+- Existing movement, targeting, shooting, HP, ammo, death and fallback rendering are preserved

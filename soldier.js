@@ -108,9 +108,15 @@ const SOLDIER_RENDER_CONFIG = {
   FACING_LINE_LENGTH: 16,
   FACING_LINE_WIDTH: 2,
   FACING_LINE_COLOR: "#1a1a1a",
+
+  // 새 5방향 PNG는 원본 비율을 유지한 채 동일한 높이로 표시한다.
+  DIRECTIONAL_SPRITE_HEIGHT: 54,
+  DIRECTIONAL_SPRITE_MAX_WIDTH: 42,
+  DIRECTIONAL_SPRITE_OFFSET_Y: 0,
+
+  // 기존 단일 스프라이트 fallback 렌더링 크기/원본 방향.
   SPRITE_WIDTH: 40,
   SPRITE_HEIGHT: 41,
-  // 원본 PNG의 총구가 화면 오른쪽 아래(약 45도)를 향하고 있다.
   SPRITE_SOURCE_ANGLE: Math.PI / 4,
 };
 
@@ -1224,6 +1230,31 @@ class Soldier extends Entity {
    * 병사 몸체(원 또는 사각형)를 그린다.
    */
   _renderBody(ctx) {
+    const directionalSprite = this._getDirectionalSprite();
+
+    if (directionalSprite) {
+      const size = this._getDirectionalSpriteSize(directionalSprite.image);
+
+      ctx.save();
+      ctx.translate(
+        this.x,
+        this.y + SOLDIER_RENDER_CONFIG.DIRECTIONAL_SPRITE_OFFSET_Y
+      );
+      ctx.scale(directionalSprite.flipX ? -1 : 1, 1);
+      if (this.hitFlashTimer > 0) {
+        ctx.filter = "brightness(2.4) saturate(0.35)";
+      }
+      ctx.drawImage(
+        directionalSprite.image,
+        -size.width / 2,
+        -size.height / 2,
+        size.width,
+        size.height
+      );
+      ctx.restore();
+      return true;
+    }
+
     const sprite = this._getSprite();
 
     if (sprite) {
@@ -1272,18 +1303,19 @@ class Soldier extends Entity {
     if (this.unitType === "rifle") return;
     const label = this.unitType === "machineGun" ? "MG" : "S";
     const color = this.unitType === "machineGun" ? "#ffd166" : "#9fe4ff";
+    const badgeY = this.y - this._getHudTopOffset() + 7;
     ctx.save();
     ctx.fillStyle = "rgba(7, 15, 22, 0.9)";
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(this.x + 13, this.y - 15, 8, 0, Math.PI * 2);
+    ctx.arc(this.x + 13, badgeY, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = color;
     ctx.font = "bold 7px Malgun Gothic, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(label, this.x + 13, this.y - 12.5);
+    ctx.fillText(label, this.x + 13, badgeY + 2.5);
     ctx.restore();
   }
 
@@ -1291,7 +1323,7 @@ class Soldier extends Entity {
     const width = SOLDIER_HP_BAR_CONFIG.WIDTH;
     const height = 3;
     const x = this.x - width / 2;
-    const y = this.y - this.radius - SOLDIER_HP_BAR_CONFIG.OFFSET_Y + 2;
+    const y = this.y - this._getHudTopOffset() + 2;
     ctx.save();
     ctx.fillStyle = "rgba(10, 14, 18, 0.82)";
     ctx.fillRect(x, y, width, height);
@@ -1301,6 +1333,53 @@ class Soldier extends Entity {
       : this.getAmmoRatio();
     ctx.fillRect(x, y, width * ratio, height);
     ctx.restore();
+  }
+
+  /**
+   * 현재 facing 벡터를 가장 가까운 8방향으로 양자화한다.
+   * 원본은 N/NE/E/SE/S 다섯 장만 사용하고 W 계열은 좌우 반전한다.
+   */
+  _getDirectionalSprite() {
+    if (this.team !== TEAM.FRIENDLY || typeof GameAssets === "undefined") {
+      return null;
+    }
+
+    const angle = Math.atan2(this.facingY, this.facingX);
+    const octant = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8;
+    const directions = [
+      { key: "ALLY_SOLDIER_E", flipX: false },  // E
+      { key: "ALLY_SOLDIER_SE", flipX: false }, // SE
+      { key: "ALLY_SOLDIER_S", flipX: false },  // S
+      { key: "ALLY_SOLDIER_SE", flipX: true },  // SW
+      { key: "ALLY_SOLDIER_E", flipX: true },   // W
+      { key: "ALLY_SOLDIER_NE", flipX: true },  // NW
+      { key: "ALLY_SOLDIER_N", flipX: false },  // N
+      { key: "ALLY_SOLDIER_NE", flipX: false }, // NE
+    ];
+
+    const direction = directions[octant];
+    const image = GameAssets.get(direction.key);
+    return image ? { image, flipX: direction.flipX } : null;
+  }
+
+  /** 원본 이미지 비율을 유지하면서 게임용 표시 크기를 계산한다. */
+  _getDirectionalSpriteSize(image) {
+    const height = SOLDIER_RENDER_CONFIG.DIRECTIONAL_SPRITE_HEIGHT;
+    const sourceWidth = image.naturalWidth || image.width || 1;
+    const sourceHeight = image.naturalHeight || image.height || 1;
+    const width = Math.min(
+      SOLDIER_RENDER_CONFIG.DIRECTIONAL_SPRITE_MAX_WIDTH,
+      height * (sourceWidth / sourceHeight)
+    );
+    return { width, height };
+  }
+
+  /** 체력/탄약 UI가 큰 방향 스프라이트 머리 위에 표시되도록 높이를 보정한다. */
+  _getHudTopOffset() {
+    if (this._getDirectionalSprite()) {
+      return SOLDIER_RENDER_CONFIG.DIRECTIONAL_SPRITE_HEIGHT / 2 + 8;
+    }
+    return this.radius + SOLDIER_HP_BAR_CONFIG.OFFSET_Y;
   }
 
   _getSprite() {
@@ -1341,11 +1420,28 @@ class Soldier extends Entity {
    * 별도 시체 엔티티를 만들지 않아 현재 구조를 유지하면서도 이후 애니메이션 확장이 쉽다.
    */
   _renderCorpse(ctx) {
+    const directionalSprite = this._getDirectionalSprite();
     const sprite = this._getSprite();
 
     ctx.save();
     ctx.globalAlpha = SOLDIER_DEATH_CONFIG.CORPSE_ALPHA;
     ctx.translate(this.x, this.y);
+
+    if (directionalSprite) {
+      const size = this._getDirectionalSpriteSize(directionalSprite.image);
+      ctx.rotate(Math.PI / 2);
+      ctx.scale(directionalSprite.flipX ? -1 : 1, SOLDIER_DEATH_CONFIG.CORPSE_HEIGHT_SCALE);
+      ctx.filter = "grayscale(0.55) brightness(0.7)";
+      ctx.drawImage(
+        directionalSprite.image,
+        -size.width / 2,
+        -size.height / 2,
+        size.width,
+        size.height
+      );
+      ctx.restore();
+      return;
+    }
 
     if (sprite) {
       const facingAngle = Math.atan2(this.facingY, this.facingX);
@@ -1419,7 +1515,7 @@ class Soldier extends Entity {
     const width = SOLDIER_HP_BAR_CONFIG.WIDTH;
     const height = SOLDIER_HP_BAR_CONFIG.HEIGHT;
     const x = this.x - width / 2;
-    const y = this.y - this.radius - SOLDIER_HP_BAR_CONFIG.OFFSET_Y - height;
+    const y = this.y - this._getHudTopOffset() - height;
     const ratio = this.getHpRatio();
 
     ctx.save();
