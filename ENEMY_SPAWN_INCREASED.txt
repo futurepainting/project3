@@ -1,4 +1,0 @@
-Enemy wave count increased by about 50%.
-Minimum enemies per wave: 6.
-Visible enemy cap: 220.
-Spawn bursts and spawn cadence increased.
