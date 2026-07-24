@@ -464,7 +464,7 @@
   // false = 일반 골드 차감 + 기존 정식 저장 사용
   // 나중에 정식 버전으로 되돌릴 때 아래 한 줄만 false로 바꾸면 됩니다.
   // ============================================================
-  const TEST_MODE_UNLIMITED_GOLD = true;
+  const TEST_MODE_UNLIMITED_GOLD = false;
   // TEST_MODE_UNLIMITED_GOLD 선언 이후에 테스트 배지를 갱신해야
   // 초기 로딩 시 ReferenceError가 발생하지 않습니다.
   if(testModeBadge && !TEST_MODE_UNLIMITED_GOLD) testModeBadge.style.display='none';
