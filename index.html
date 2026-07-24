@@ -154,6 +154,58 @@
   #skillPanel .p-max{font-family:'Orbitron',sans-serif;color:#fff;background:#2a3a2c;border:1px solid var(--hp);
     padding:10px;text-align:center;border-radius:4px;font-size:13px;}
 
+
+  /* ---------- progressive combat spectacle ---------- */
+  #fxTierBadge{
+    position:absolute;left:14px;top:14px;z-index:7;display:flex;align-items:center;gap:8px;
+    padding:7px 10px;border:1px solid rgba(79,163,227,.35);background:rgba(8,12,18,.72);
+    backdrop-filter:blur(6px);border-radius:4px;pointer-events:none;
+    font-family:'Orbitron',sans-serif;letter-spacing:1px;text-transform:uppercase;
+  }
+  #fxTierBadge span{font-size:9px;color:var(--muted);}
+  #fxTierBadge b{font-size:12px;color:var(--ally);text-shadow:0 0 10px rgba(79,163,227,.75);}
+  #fxTierBadge.tier-3,#fxTierBadge.tier-4,#fxTierBadge.tier-5{
+    border-color:rgba(232,163,61,.6);box-shadow:0 0 15px rgba(232,163,61,.12) inset;
+  }
+  #fxTierBadge.tier-3 b,#fxTierBadge.tier-4 b,#fxTierBadge.tier-5 b{color:#ffd06e;text-shadow:0 0 12px rgba(255,208,110,.85);}
+  #fxTierBadge.tier-5{animation:omegaBadge 1.1s ease-in-out infinite;}
+  @keyframes omegaBadge{0%,100%{box-shadow:0 0 8px rgba(255,91,91,.16),0 0 14px rgba(232,163,61,.12) inset}
+    50%{box-shadow:0 0 20px rgba(255,91,91,.32),0 0 24px rgba(232,163,61,.22) inset}}
+
+  #comboHud{
+    position:absolute;left:50%;top:16px;transform:translateX(-50%) scale(.85);z-index:7;
+    min-width:132px;text-align:center;opacity:0;pointer-events:none;transition:opacity .15s,transform .18s;
+    font-family:'Orbitron',sans-serif;text-shadow:0 0 14px rgba(232,163,61,.85);
+  }
+  #comboHud.show{opacity:1;transform:translateX(-50%) scale(1);}
+  #comboHud b{display:block;font-size:19px;color:#ffd06e;letter-spacing:2px;}
+  #comboHud small{display:block;font-size:8px;color:#fff1bf;letter-spacing:4px;margin-top:-2px;}
+
+  #bossHud{
+    position:absolute;left:50%;top:52px;transform:translateX(-50%) translateY(-8px);z-index:7;
+    width:min(470px,72vw);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+  }
+  #bossHud.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #bossHud .boss-line{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;
+    font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:#ffb2aa;text-shadow:0 0 10px rgba(224,72,63,.7);}
+  #bossHud .boss-track{height:9px;border:1px solid rgba(255,150,140,.55);background:rgba(10,5,7,.8);
+    border-radius:2px;padding:2px;box-shadow:0 0 16px rgba(224,72,63,.18);}
+  #bossHudFill{height:100%;width:100%;background:linear-gradient(90deg,#8b1018,#ff5349,#ffb86b);
+    box-shadow:0 0 12px rgba(255,83,73,.8);transition:width .08s linear;}
+
+  #dangerVignette,#screenFlashDom{
+    position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;
+  }
+  #dangerVignette{box-shadow:inset 0 0 90px 25px rgba(224,35,35,.75);mix-blend-mode:screen;}
+  #screenFlashDom{background:#fff;mix-blend-mode:screen;}
+
+  @media (max-width:700px){
+    #fxTierBadge{top:10px;left:8px;padding:5px 7px}
+    #fxTierBadge span{display:none}
+    #comboHud{top:11px}
+    #bossHud{top:47px;width:82vw}
+  }
+
   @media (max-width:760px){
     #skillPanel{left:0;right:0;bottom:0;width:auto;max-height:50vh;border-radius:10px 10px 0 0;}
   }
@@ -175,6 +227,14 @@
     <div id="stage">
       <div id="roundBar"><div id="roundBarFill"></div></div>
       <canvas id="game"></canvas>
+      <div id="fxTierBadge" class="tier-0"><span>전투 출력</span><b id="fxTierValue">I</b></div>
+      <div id="comboHud"><b id="comboHudValue">COMBO x2</b><small>CHAIN KILL</small></div>
+      <div id="bossHud">
+        <div class="boss-line"><span>⚠ 지휘관급 위협체</span><span id="bossHpText">100%</span></div>
+        <div class="boss-track"><div id="bossHudFill"></div></div>
+      </div>
+      <div id="dangerVignette"></div>
+      <div id="screenFlashDom"></div>
       <div class="warn-banner" id="warnBanner"></div>
       <button id="cmdBtn">⚡ 지휘 명령 가능</button>
       <div id="cmdPanel">
@@ -182,7 +242,7 @@
         <div class="cmd-bar"><div class="cmd-bar-fill" id="cmdBarFill"></div></div>
         <div id="cmdChoices"></div>
       </div>
-      <div id="hint">기지를 누르고 있으면 병사 연속 소환 · 동전 위로 커서를 옮겨 골드 획득</div>
+      <div id="hint">기지를 누르면 혼합 기계부대 자동 편성 · 실드 벌크는 폭파병 차단 · 블래스트 캐논은 장갑·공성 적 우선 포격</div>
       <div id="overlay">
         <h1 id="overlayTitle">라운드 종료</h1>
         <div class="stats">생존 시간 <b id="finalTime">0</b>초 · 도달 웨이브 <b id="finalWave">1</b> · 처치 <b id="finalKills">0</b></div>
@@ -194,7 +254,7 @@
 
   <div id="lobbyScreen" class="active">
     <div id="opTopBar">
-      <h1>⚔ 전장 지휘 스킬트리</h1>
+      <h1>⚔ 전장 지휘 스킬트리 <span id="testModeBadge" style="font-size:10px;color:#ffcf7a;border:1px solid #e8a33d;padding:3px 7px;border-radius:3px;margin-left:8px;">TEST · 골드 무제한</span></h1>
       <div id="opTopStats">
         <div class="stat"><span class="label">보유 골드</span><span class="value gold" id="topGoldVal">0</span></div>
         <div class="stat"><span class="label">전체 구매 레벨</span><span class="value" id="topLevelVal">0</span></div>
@@ -221,6 +281,34 @@
 (function(){
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+
+  // 업로드된 아군 5종 이미지를 실제 전투 스프라이트로 사용한다.
+  // 이미지가 늦게 로드되거나 누락되면 기존 도형형 폴백이 대신 그려져 전투가 멈추지 않는다.
+  const UNIT_SPRITE_PATHS = {
+    rifler:'assets/core-rifler.png',
+    shield:'assets/shield-bulk.png',
+    cannon:'assets/blast-cannon.png',
+    collector:'assets/collector-robot.png',
+    laserPod:'assets/base-laser-pod.png'
+  };
+  const unitSprites = {};
+  for(const [key,src] of Object.entries(UNIT_SPRITE_PATHS)){
+    const img=new Image();
+    img.decoding='async';
+    img.ready=false;
+    img.addEventListener('load',()=>{img.ready=true;});
+    img.addEventListener('error',()=>{img.ready=false;console.warn('유닛 이미지 로드 실패:',src);});
+    img.src=src;
+    unitSprites[key]=img;
+  }
+  function drawUnitSprite(key,width,height){
+    const img=unitSprites[key];
+    if(!img || !img.ready || !img.naturalWidth) return false;
+    ctx.drawImage(img,-width/2,-height/2,width,height);
+    return true;
+  }
+
   const stage = document.getElementById('stage');
   const gameScreen = document.getElementById('gameScreen');
   const lobbyScreen = document.getElementById('lobbyScreen');
@@ -242,6 +330,15 @@
   const cmdBtn = document.getElementById('cmdBtn');
   const cmdPanel = document.getElementById('cmdPanel');
   const cmdChoices = document.getElementById('cmdChoices');
+  const fxTierBadge = document.getElementById('fxTierBadge');
+  const fxTierValue = document.getElementById('fxTierValue');
+  const comboHud = document.getElementById('comboHud');
+  const comboHudValue = document.getElementById('comboHudValue');
+  const bossHud = document.getElementById('bossHud');
+  const bossHudFill = document.getElementById('bossHudFill');
+  const bossHpText = document.getElementById('bossHpText');
+  const dangerVignette = document.getElementById('dangerVignette');
+  const screenFlashDom = document.getElementById('screenFlashDom');
 
   const topGoldVal = document.getElementById('topGoldVal');
   const topLevelVal = document.getElementById('topLevelVal');
@@ -256,6 +353,7 @@
   const skillPanel = document.getElementById('skillPanel');
   const panelBody = document.getElementById('panelBody');
   const panelClose = document.getElementById('panelClose');
+  const testModeBadge = document.getElementById('testModeBadge');
 
   let W, H, cx, cy;
   function resize(){
@@ -263,6 +361,7 @@
     canvas.width = W*devicePixelRatio; canvas.height = H*devicePixelRatio;
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     cx = W/2; cy = H/2;
+    rebuildAmbientField();
   }
   window.addEventListener('resize', ()=>{ if(phase==='round') resize(); if(phase==='lobby') fitTree(); });
 
@@ -278,7 +377,7 @@
 
     // 1단계 (루트 Lv.1에서 동시 해금)
     {id:'baseDurability', name:'기지 내구도', icon:'🛡', maxLevel:5, parent:'operationDuration', unlockLevel:1,
-      values:[12,24,36,48,60], costs:[10,30,90,260,750], pos:{x:420,y:300},
+      values:[15,35,55,80,110], costs:[10,30,90,260,750], pos:{x:420,y:300},
       desc:'기지 최대 체력을 늘립니다.'},
     {id:'summonSpeed', name:'소환 속도', icon:'⏱', maxLevel:5, parent:'operationDuration', unlockLevel:1,
       values:[10,20,30,40,50], costs:[12,45,120,500,1600], pos:{x:420,y:460},
@@ -288,18 +387,18 @@
       desc:'적이 낮은 확률로 강력한 정예로 등장합니다.'},
     {id:'soldierDamage', name:'병사 공격력', icon:'⚔', maxLevel:5, parent:'operationDuration', unlockLevel:1,
       values:[10,20,30,40,50], costs:[12,36,110,320,900], pos:{x:780,y:300},
-      desc:'모든 아군의 공격력을 늘립니다.'},
+      desc:'모든 아군의 공격력을 늘립니다. Lv.2부터 장갑·공성 적을 우선 포격하는 블래스트 캐논이 자동 편성됩니다.'},
     {id:'goldGain', name:'골드 획득', icon:'💰', maxLevel:5, parent:'operationDuration', unlockLevel:1,
       values:[8,16,24,32,40], costs:[10,30,90,260,750], pos:{x:780,y:460},
-      desc:'적 처치로 얻는 골드를 늘립니다.'},
+      desc:'노란 코인을 획득할 때 보너스 골드를 소수점으로 누적하고, 누적값이 1이 될 때마다 추가 골드 1을 지급합니다.'},
 
     // 2단계
     {id:'soldierDurability', name:'병사 내구도', icon:'❤', maxLevel:5, parent:'baseDurability', unlockLevel:1,
-      values:[12,24,36,48,60], costs:[15,45,120,390,1100], pos:{x:260,y:220},
-      desc:'모든 아군의 최대 체력을 늘립니다.'},
+      values:[12,28,45,65,90], costs:[15,45,120,390,1100], pos:{x:260,y:220},
+      desc:'모든 아군의 최대 체력을 늘립니다. Lv.1부터 전열에서 적과 폭파병을 막는 실드 벌크가 자동 편성됩니다.'},
     {id:'autoProduction', name:'자동 생산', icon:'⚙', maxLevel:5, parent:'summonSpeed', unlockLevel:1,
-      values:[12,9,7,5.5,4], costs:[30,90,130,850,2500], pos:{x:260,y:540},
-      desc:'누르지 않아도 일정 간격으로 병사가 자동 생성됩니다. 후반 레벨에서 생산 속도가 크게 증가합니다.'},
+      values:[10,7,5,3.4,2.2], costs:[30,90,130,850,2500], pos:{x:260,y:540},
+      desc:'누르지 않아도 병사가 자동 생성됩니다. Lv.4부터 한 번에 2명이 출격해 후반 병력 규모가 크게 증가합니다.'},
     {id:'soldierMobility', name:'병사 기동력', icon:'👟', maxLevel:5, parent:'soldierDamage', unlockLevel:1,
       values:[8,16,24,32,40], costs:[15,45,120,390,1100], pos:{x:930,y:220},
       desc:'모든 아군의 이동속도를 늘립니다.'},
@@ -309,14 +408,14 @@
 
     // 3단계
     {id:'emergencyRepair', name:'비상 수리', icon:'🩹', maxLevel:3, parent:'soldierDurability', unlockLevel:1,
-      values:[12,20,28], costs:[55,220,800], pos:{x:100,y:140},
+      values:[15,28,42], costs:[55,220,800], pos:{x:100,y:140},
       desc:'체력 30% 이하가 되면 자동 회복하며, 라운드에 한 번 치명적인 피해도 버텨냅니다.'},
     {id:'reserveForce', name:'예비 병력', icon:'🎖', maxLevel:3, parent:'autoProduction', unlockLevel:1,
-      values:[6,5,4], costs:[45,180,650], pos:{x:100,y:620},
+      values:[5,4,3], costs:[45,180,650], pos:{x:100,y:620},
       desc:'수동 소환을 일정 횟수 반복하면 병사 1명이 무료로 추가됩니다.'},
     {id:'focusFire', name:'집중 사격', icon:'🎯', maxLevel:3, parent:'soldierMobility', unlockLevel:1,
       values:[8,14,20], costs:[60,240,900], pos:{x:1060,y:120},
-      desc:'한 적에 2명 이상 몰리면 추가 피해를 줍니다.'},
+      desc:'한 적에 2명 이상 몰리면 추가 피해를 줍니다. 집중 사격과 돌격 명령이 모두 MAX면 전군 일제사격이 자동 발동합니다.'},
     {id:'assaultCommand', name:'돌격 명령', icon:'📯', maxLevel:3, parent:'soldierMobility', unlockLevel:1,
       values:{speed:[20,30,40],atk:[8,14,20]}, costs:[50,200,750], pos:{x:1080,y:260},
       desc:'생성 직후 8초간 이동속도와 공격속도가 강화됩니다.'},
@@ -341,7 +440,17 @@
     // 4단계
     {id:'chainBounty', name:'연쇄 현상금', icon:'⛓', maxLevel:3, parent:'focusFire', unlockLevel:1,
       values:[10,20,30], costs:[120,360,1080], pos:{x:1190,y:60},
-      desc:'3초 내에 연속 처치하면 콤보에 따라 골드 보너스가 상승합니다.'}
+      desc:'3초 내에 연속 처치하면 골드 보너스가 상승하고, 10콤보마다 보너스 코인 폭발이 발생합니다.'},
+
+    // 실제 전투에 직접 개입하는 후반 자동화 가지
+    {id:'baseLaser', name:'기지 자동 레이저', icon:'🔆', maxLevel:5, parent:'focusFire', unlockLevel:1,
+      values:{damage:[20,34,52,82,125], interval:[3.0,2.4,1.9,1.35,0.95], chains:[1,1,2,3,4]},
+      costs:[180,520,1450,3900,9800], pos:{x:1190,y:180},
+      desc:'기지가 가장 위험한 적을 우선 조준합니다. 지휘관에게 추가 관통 피해를 주며, 최종 레벨에서는 초고속 연쇄 포격으로 변합니다.'},
+    {id:'collectorDrone', name:'회수 로봇', icon:'🤖', maxLevel:3, parent:'magneticRecovery', unlockLevel:1,
+      values:{count:[1,2,3], speed:[140,185,235], range:[300,470,9999]},
+      costs:[180,650,2200], pos:{x:1190,y:700},
+      desc:'전장을 돌아다니며 떨어진 코인을 자동으로 찾아 회수하는 로봇을 배치합니다.'}
   ];
   const SKILL_MAP = {}; SKILLS.forEach(s=> SKILL_MAP[s.id]=s);
   const CHILDREN_OF = {}; SKILLS.forEach(s=>{ if(s.parent){ (CHILDREN_OF[s.parent]=CHILDREN_OF[s.parent]||[]).push(s.id); } });
@@ -349,9 +458,36 @@
   // ============================================================
   // 2) 저장 / 로드 (새 가지형 스킬트리 전용 저장소, saveVersion:7)
   // ============================================================
-  const SAVE_KEY = 'skillState_branch_v6'; // 이전 개편 저장과 분리: 최초 실행은 모든 스킬 Lv.0
+  // ============================================================
+  // 테스트 모드 설정
+  // true  = 골드 무제한 + 테스트 전용 저장 사용
+  // false = 일반 골드 차감 + 기존 정식 저장 사용
+  // 나중에 정식 버전으로 되돌릴 때 아래 한 줄만 false로 바꾸면 됩니다.
+  // ============================================================
+  const TEST_MODE_UNLIMITED_GOLD = true;
+  // TEST_MODE_UNLIMITED_GOLD 선언 이후에 테스트 배지를 갱신해야
+  // 초기 로딩 시 ReferenceError가 발생하지 않습니다.
+  if(testModeBadge && !TEST_MODE_UNLIMITED_GOLD) testModeBadge.style.display='none';
+
+  const NORMAL_SAVE_KEY = 'skillState_branch_v6';
+  const SAVE_KEY = TEST_MODE_UNLIMITED_GOLD
+    ? NORMAL_SAVE_KEY + '_unlimited_test'
+    : NORMAL_SAVE_KEY;
+
   const skillState = { levels:{} };
-  const meta = { gold:0, records:{ rounds:0, bestWave:0, bestKills:0, bestTime:0 } };
+  const meta = { gold:0, goldGainRemainder:0, records:{ rounds:0, bestWave:0, bestKills:0, bestTime:0 } };
+
+  function hasEnoughGold(cost){
+    return TEST_MODE_UNLIMITED_GOLD || meta.gold >= cost;
+  }
+
+  function spendGold(cost){
+    if(!TEST_MODE_UNLIMITED_GOLD) meta.gold -= cost;
+  }
+
+  function bankGoldText(){
+    return TEST_MODE_UNLIMITED_GOLD ? '∞ TEST' : String(Math.floor(meta.gold));
+  }
 
   async function loadSave(){
     try{
@@ -387,6 +523,11 @@
         // 제거된 시스템의 저장 필드(equippedModules/selectedDoctrine/selectedOperationModifier/
         // commandCapacity/unlockedOperationModifiers 등)는 존재해도 그냥 무시하고 읽지 않는다.
         meta.gold = typeof data.gold==='number' ? Math.max(0, Math.floor(data.gold)) : 0;
+        // 골드 획득 스킬의 소수점 보너스는 라운드가 바뀌어도 사라지지 않게 저장한다.
+        // 구버전 저장에는 값이 없으므로 0에서 시작한다.
+        meta.goldGainRemainder = typeof data.goldGainRemainder==='number'
+          ? Math.max(0, data.goldGainRemainder % 1)
+          : 0;
         if(data.records){
           meta.records.rounds=data.records.rounds||0; meta.records.bestWave=data.records.bestWave||0;
           meta.records.bestKills=data.records.bestKills||0; meta.records.bestTime=data.records.bestTime||0;
@@ -399,7 +540,7 @@
   async function persistSave(){
     try{
       await window.storage.set(SAVE_KEY, JSON.stringify({
-        saveVersion:7, gold:meta.gold, levels:skillState.levels, records:meta.records
+        saveVersion:9, gold:meta.gold, goldGainRemainder:meta.goldGainRemainder, levels:skillState.levels, records:meta.records
       }), false);
     }catch(e){ /* best effort */ }
   }
@@ -433,11 +574,11 @@
     if(l>=s.maxLevel) return false;
     if(!isRevealed(id)) return false;
     const cost = nextCost(s);
-    if(meta.gold < cost) return false;
+    if(!hasEnoughGold(cost)) return false;
 
     buying = true;
     const revealedBefore = new Set(SKILLS.filter(sk=>isRevealed(sk.id)).map(sk=>sk.id));
-    meta.gold -= cost;
+    spendGold(cost);
     skillState.levels[id] = l+1;
     const revealedAfter = SKILLS.filter(sk=>isRevealed(sk.id)).map(sk=>sk.id);
     justUnlockedId = (l+1===1) ? id : null;
@@ -455,6 +596,28 @@
   function getSoldierDamageMult(){ return 1+(L('soldierDamage')>0?SKILL_MAP.soldierDamage.values[L('soldierDamage')-1]:0)/100; }
   function getSoldierHpMult(){ return 1+(L('soldierDurability')>0?SKILL_MAP.soldierDurability.values[L('soldierDurability')-1]:0)/100; }
   function getSoldierSpeedMult(){ return 1+(L('soldierMobility')>0?SKILL_MAP.soldierMobility.values[L('soldierMobility')-1]:0)/100; }
+  function shieldChanceForLevel(lvl){ return lvl>0?Math.min(28,8+lvl*4):0; }
+  function cannonChanceForLevel(lvl){ return lvl>=2?Math.min(19,4+lvl*3):0; }
+  function getShieldBulkChancePct(){ return shieldChanceForLevel(L('soldierDurability')); }
+  function getBlastCannonChancePct(){ return cannonChanceForLevel(L('soldierDamage')); }
+  function getFormationBalancePressure(){
+    const shield=Math.max(0,L('soldierDurability')-1)/4;
+    const cannon=Math.max(0,L('soldierDamage')-2)/3;
+    return Math.max(0,Math.min(1,(shield+cannon)/2));
+  }
+  function getLaserPodCount(){
+    const l=L('baseLaser');
+    return l<=0?0:l>=5?4:l>=4?3:l>=3?2:1;
+  }
+  function getLaserPodPositions(){
+    const count=getLaserPodCount();
+    if(!base || count<=0) return [];
+    const rr=base.radius+24;
+    return Array.from({length:count},(_,i)=>{
+      const a=-Math.PI/2+i*Math.PI*2/count;
+      return {x:base.x+Math.cos(a)*rr,y:base.y+Math.sin(a)*rr,angle:a};
+    });
+  }
   // pickupRadius ID는 저장 호환을 위해 유지하지만, 실제 표시 이름은 '커서 자석'이다.
   function getPickupRadius(){ return 24*(1+(L('pickupRadius')>0?SKILL_MAP.pickupRadius.values[L('pickupRadius')-1]:0)/100); }
   function getOperationDuration(){ const l=L('operationDuration'); return 15+(l>0?SKILL_MAP.operationDuration.values[l-1]-15:0); }
@@ -462,13 +625,13 @@
     // 초반은 느리게 시작하고, 소환 속도/자동 생산/예비 병력 투자 후 후반 체감이 크게 달라지도록 설정
     const baseManualSpawnInterval = 2.2;
     let interval = baseManualSpawnInterval*(1-(L('summonSpeed')>0?SKILL_MAP.summonSpeed.values[L('summonSpeed')-1]:0)/100);
-    if(overloadTimer>0) interval *= 0.50;
+    if(overloadTimer>0) interval *= 0.40;
     return Math.max(baseManualSpawnInterval*0.45, interval);
   }
   function getAutoSpawnInterval(){
     const l=L('autoProduction'); if(l<=0) return null;
     let interval=SKILL_MAP.autoProduction.values[l-1];
-    if(overloadTimer>0) interval*=0.75;
+    if(overloadTimer>0) interval*=0.60;
     return interval;
   }
   function getReserveForceEvery(){ const l=L('reserveForce'); return l>0?SKILL_MAP.reserveForce.values[l-1]:0; }
@@ -483,14 +646,29 @@
   function getLuckPityStepPct(){ const l=L('luckAmplifier'); return l>0?SKILL_MAP.luckAmplifier.values[l-1]:0; }
   function getJackpotCoinChancePct(){ const l=L('jackpotCoin'); return l>0?SKILL_MAP.jackpotCoin.values[l-1]:0; }
   function getChainBountyMaxPct(){ const l=L('chainBounty'); return l>0?SKILL_MAP.chainBounty.values[l-1]:0; }
+  function getAutoSpawnBatch(){ const l=L('autoProduction'); return l>=5?3:l>=4?2:1; }
+  function getBaseLaser(){
+    const l=L('baseLaser'); if(l<=0) return null;
+    return {damage:SKILL_MAP.baseLaser.values.damage[l-1], interval:SKILL_MAP.baseLaser.values.interval[l-1], chains:SKILL_MAP.baseLaser.values.chains[l-1]};
+  }
+  function getCollectorRobot(){
+    const l=L('collectorDrone'); if(l<=0) return null;
+    return {count:SKILL_MAP.collectorDrone.values.count[l-1], speed:SKILL_MAP.collectorDrone.values.speed[l-1], range:SKILL_MAP.collectorDrone.values.range[l-1]};
+  }
   function getEliteChancePct(phaseIdx){
     let c=0; const l=L('eliteContract');
     if(l>0) c += SKILL_MAP.eliteContract.values[l-1];
     if(phaseIdx>=5) c += 3;
     return Math.min(30,c);
   }
+  function getGoldGainPct(){
+    const l=L('goldGain');
+    return l>0 ? SKILL_MAP.goldGain.values[l-1] : 0;
+  }
   function getGoldMultiplier(eliteMult){
-    let m = 1+(L('goldGain')>0?SKILL_MAP.goldGain.values[L('goldGain')-1]:0)/100;
+    // 골드 획득 스킬은 여기서 직접 곱하지 않는다.
+    // 노란 코인을 모을 때만 별도의 소수점 누적 방식으로 처리한다.
+    let m = 1;
     const cbMax = getChainBountyMaxPct();
     if(cbMax>0){ const tier=Math.min(5,Math.floor(comboCount/5)); m *= (1+(cbMax/5*tier)/100); }
     m *= (eliteMult||1);
@@ -587,7 +765,7 @@
   function buildNode(s){
     const state = nodeState(s);
     const cost = nextCost(s);
-    const affordable = state!=='maxed' && cost!==null && meta.gold>=cost;
+    const affordable = state!=='maxed' && cost!==null && hasEnoughGold(cost);
     let fill, stroke;
     if(state==='maxed'){
       fill='#263a2e'; stroke='#62d79b';
@@ -619,7 +797,7 @@
       const lvl = L(s.id);
       if(lvl>=s.maxLevel){ showToast(s.name+'은(는) 이미 MAX 레벨입니다.'); return; }
       const cost = nextCost(s);
-      if(meta.gold < cost){ showToast('골드가 부족합니다. 필요: '+cost); return; }
+      if(!hasEnoughGold(cost)){ showToast('골드가 부족합니다. 필요: '+cost); return; }
       if(buySkill(s.id)){
         const newLvl = L(s.id);
         renderLobby();
@@ -636,7 +814,7 @@
   }
 
   function opDurationExtra(lvl){
-    const notes = ['적 밀도 소폭 증가','빠른 적 등장 가능','체력 높은 적 등장 가능','다방향 집중 공세 추가','정예 적 기본 확률 등장','최종 공세 / 지휘관급 적 등장'];
+    const notes = ['적 밀도 증가','빠른 돌파 적 등장','장갑·공성 적 등장','집중 공세와 다중 스폰','정예·코인 폭발 구간','최종 공세 / 지휘관급 적 등장'];
     return notes[lvl-1]||'';
   }
 
@@ -683,30 +861,32 @@
     if(lvl<=0) return '없음';
     switch(s.id){
       case 'baseDurability': return '기지 최대 체력 +'+s.values[lvl-1]+'%';
-      case 'soldierDamage': return '병사 공격력 +'+s.values[lvl-1]+'%';
-      case 'soldierDurability': return '병사 체력 +'+s.values[lvl-1]+'%';
+      case 'soldierDamage': return '아군 공격력 +'+s.values[lvl-1]+'%'+(lvl>=2?' · 블래스트 캐논 편성 '+cannonChanceForLevel(lvl)+'%':'');
+      case 'soldierDurability': return '아군 체력 +'+s.values[lvl-1]+'% · 실드 벌크 편성 '+shieldChanceForLevel(lvl)+'%';
       case 'soldierMobility': return '병사 이동속도 +'+s.values[lvl-1]+'%';
-      case 'goldGain': return '적 처치 골드 +'+s.values[lvl-1]+'%';
+      case 'goldGain': return '노란 코인 보너스 누적 +'+s.values[lvl-1]+'%';
       case 'pickupRadius': return '커서 자석 범위 +'+s.values[lvl-1]+'%';
       case 'summonSpeed': return '수동 소환 간격 -'+s.values[lvl-1]+'%';
-      case 'autoProduction': return '자동 생산 간격 '+s.values[lvl-1]+'초';
+      case 'autoProduction': return '자동 생산 '+s.values[lvl-1]+'초마다 '+(lvl>=5?'부대 3기':lvl>=4?'부대 2기':'부대 1기');
       case 'emergencyRepair': return '체력 30% 이하 또는 치명타 시 최대체력의 '+s.values[lvl-1]+'% 회복 (라운드 1회)';
       case 'reserveForce': return '수동 소환 '+s.values[lvl-1]+'회마다 병사 1명 무료 추가';
-      case 'focusFire': return '한 적에 2명 이상 공격 시 피해 +'+s.values[lvl-1]+'%';
+      case 'focusFire': return '한 적에 2명 이상 공격 시 피해 +'+s.values[lvl-1]+'%'+(lvl>=3?' · 돌격 명령 MAX 시 전군 일제사격':'');
       case 'assaultCommand': return '신규 병사 8초간 이동속도 +'+s.values.speed[lvl-1]+'%, 공격속도 +'+s.values.atk[lvl-1]+'%';
       case 'magneticRecovery': return '기지 주변 '+s.values.range[lvl-1]+'px 안의 코인이 부드럽게 끌려와 자동 회수';
       case 'premiumCoin': return '파란 코인 등장 확률 '+s.values[lvl-1]+'% · 가치 5골드';
       case 'rareCoin': return '파란 코인의 보라 코인 승급 확률 '+s.values[lvl-1]+'% · 가치 20골드';
       case 'luckAmplifier': return '일반 코인 연속 시 고급 코인 확률 +'+s.values[lvl-1]+'%p씩 누적 (최대 +10%p)';
       case 'jackpotCoin': return '붉은 잭팟 코인 등장 확률 '+s.values[lvl-1]+'% · 가치 50골드';
-      case 'chainBounty': return '3초 내 연속 처치 콤보 시 최대 골드 +'+s.values[lvl-1]+'%';
-      case 'eliteContract': return '정예 적 등장 확률 '+s.values[lvl-1]+'% (체력×2.5, 공격×1.5, 골드×2)';
+      case 'chainBounty': return '3초 내 연속 처치 콤보 시 최대 골드 +'+s.values[lvl-1]+'% · 10콤보마다 코인 폭발';
+      case 'baseLaser': return '자동 레이저 피해 '+s.values.damage[lvl-1]+' · '+s.values.interval[lvl-1]+'초마다 발사 · 최대 '+s.values.chains[lvl-1]+'개 표적';
+      case 'collectorDrone': return '회수 로봇 '+s.values.count[lvl-1]+'기 · 속도 '+s.values.speed[lvl-1]+' · 탐색 범위 '+(s.values.range[lvl-1]>=9999?'전장 전체':s.values.range[lvl-1]+'px');
+      case 'eliteContract': return '정예 적 등장 확률 '+s.values[lvl-1]+'% (체력×2.7, 공격×1.6, 골드×2)';
       default: return '';
     }
   }
 
   function renderLobby(){
-    topGoldVal.textContent = Math.floor(meta.gold);
+    topGoldVal.textContent = bankGoldText();
     topLevelVal.textContent = totalLevel();
     topRoundVal.textContent = getOperationDuration()+'초';
     buildTree();
@@ -747,12 +927,361 @@
   let gameSpeedMult=1;
   let soldierSeq=0;
   let roundEnding=false, roundEndGrace=0;
+  let assaultWaveTimer=8, assaultWaveCount=0;
+  let baseLaserTimer=0, baseLaserChargeFlash=0, baseLaserShotCount=0;
+  let baseLaserAimTargets=[];
+  let coinDrones=[];
+  let roundUnitAnnouncements=new Set();
+  let overtimeActive=false, overtimeUsed=false, omegaVolleyTimer=5.2;
+  const MAX_ENEMIES=280;
   const GOLDEN_ANGLE=2.399963;
 
+  // 전투의 규칙과 밸런스는 그대로 두고, 진행도에 따라 시각 효과만 단계적으로 성장시킨다.
+  let ambientStars=[];
+  let screenShake=0, screenShakeX=0, screenShakeY=0;
+  let screenFlashAlpha=0, screenFlashCss='#ffffff';
+  let damageVignetteAlpha=0;
+  let fxPulse=0, lastVisualTier=-1;
+  let commanderEntranceTimer=0;
+
+  function rebuildAmbientField(){
+    if(!W || !H) return;
+    const count=Math.max(45,Math.min(150,Math.floor(W*H/9000)));
+    ambientStars=Array.from({length:count},(_,i)=>({
+      x:Math.random()*W,y:Math.random()*H,
+      r:0.35+Math.random()*1.35,
+      phase:Math.random()*Math.PI*2,
+      depth:0.25+Math.random()*0.75
+    }));
+  }
+
+  function getVisualTier(){
+    const level=totalLevel();
+    let skillTier=0;
+    if(level>=75) skillTier=5;
+    else if(level>=56) skillTier=4;
+    else if(level>=38) skillTier=3;
+    else if(level>=21) skillTier=2;
+    else if(level>=8) skillTier=1;
+
+    // 긴 작전의 중반부터 전장 밀도와 실제 공격 효과가 빠르게 상승한다.
+    let roundTier=0;
+    if(ROUND_DURATION>=40){
+      if(elapsed>=34) roundTier=5;
+      else if(elapsed>=26) roundTier=4;
+      else if(elapsed>=20) roundTier=3;
+      else if(elapsed>=14) roundTier=2;
+      else if(elapsed>=8) roundTier=1;
+    } else if(ROUND_DURATION>=30){
+      if(elapsed>=27) roundTier=4;
+      else if(elapsed>=21) roundTier=3;
+      else if(elapsed>=14) roundTier=2;
+      else if(elapsed>=8) roundTier=1;
+    } else if(ROUND_DURATION>=20){
+      if(elapsed>=16) roundTier=2;
+      else if(elapsed>=8) roundTier=1;
+    }
+    return Math.max(skillTier,roundTier);
+  }
+
+  function visualTierLabel(tier){
+    return ['I','II','III','IV','V','Ω'][Math.max(0,Math.min(5,tier))];
+  }
+
+  // 성장한 공격/경제 스킬만으로 방어 스킬을 건너뛸 수 없도록, 전체 성장도에 맞춰 적의 실제 위협도도 함께 오른다.
+  // 신규 유저의 초반 난이도는 거의 그대로이며, 45초·고레벨 작전에서만 기지와 병사 피해가 크게 상승한다.
+  function getThreatProfile(){
+    // 방어 스킬을 구매했다고 적까지 강해지지 않는다. 위협도는 방어 가지를 제외한 성장량으로 계산한다.
+    const level=totalLevel()-L('baseDurability')-L('soldierDurability')-L('emergencyRepair');
+    const progression=Math.max(0,Math.min(1,(level-25)/46));
+    const phase=Math.max(0,Math.min(1,currentPhaseIndex()/6));
+    const duration=Math.max(0,Math.min(1,((ROUND_DURATION||15)-25)/20));
+    // 혼합 편성은 전선 유지력과 범위 화력을 높이므로, 고레벨에서만 적 체력·밀도를 소폭 보정한다.
+    const formation=getFormationBalancePressure();
+    return {
+      hp:1+progression*.18+phase*.12+formation*.06,
+      soldierDamage:1+progression*.45+phase*.25+formation*.04,
+      baseDamage:1+progression*.65+phase*.35+duration*.10+formation*.025,
+      density:1+progression*.28+phase*.22+formation*.08
+    };
+  }
+
+  function getCommanderSpawnTime(){
+    return Math.max(27,(ROUND_DURATION||40)-15);
+  }
+
+  function isOmegaVolleyUnlocked(){
+    return L('focusFire')>=3 && L('assaultCommand')>=3 && soldiers.length>=8;
+  }
+
+  function addScreenShake(amount){
+    screenShake=Math.min(22,Math.max(screenShake,amount));
+  }
+
+  function addScreenFlash(color,alpha){
+    screenFlashCss=color||'#ffffff';
+    screenFlashAlpha=Math.max(screenFlashAlpha,alpha||0.2);
+  }
+
+  function pushFx(p){
+    particles.push(p);
+    if(particles.length>980) particles.splice(0,particles.length-980);
+  }
+
+  function spawnRadialBurst(x,y,color,count,speed,size){
+    count=Math.max(3,count||8); speed=speed||100; size=size||2;
+    for(let i=0;i<count;i++){
+      const a=Math.PI*2*i/count+(Math.random()-0.5)*0.35;
+      const sp=speed*(0.55+Math.random()*0.75);
+      pushFx({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,drag:3.6,
+        size:size*(0.6+Math.random()),color,life:0.28+Math.random()*0.32,t:0,
+        type:'shard',rot:a,spin:(Math.random()-0.5)*10});
+    }
+  }
+
+  function spawnCombatTracer(x1,y1,x2,y2,color,heavy){
+    const tier=getVisualTier();
+    if(tier<=0) return;
+    pushFx({x:x1,y:y1,x2,y2,color,life:heavy?0.18:0.11,t:0,type:'tracer',
+      width:(heavy?3.8:1.6)+tier*0.22});
+    if(tier>=2){
+      pushFx({x:x1,y:y1,r:2,max:8+tier*1.5,color,life:0.12,t:0,type:'ring'});
+    }
+    if(tier>=3){
+      const dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy)||1;
+      const nx=-dy/d,ny=dx/d;
+      pushFx({x:x1+dx*0.45+nx*(Math.random()-0.5)*5,
+        y:y1+dy*0.45+ny*(Math.random()-0.5)*5,
+        vx:dx/d*35,vy:dy/d*35,drag:5,size:1.4,color,life:0.18,t:0,type:'shard',rot:Math.atan2(dy,dx)});
+    }
+  }
+
+  function spawnEnemyEntranceFx(en){
+    const tier=getVisualTier();
+    const color=en.kind==='commander'?'#ff5147':en.kind==='bomber'?'#ffcf4f':en.kind==='siege'?'#ff8748':en.elite?'#e8a33d':'#e0483f';
+    pushFx({x:en.x,y:en.y,r:4,max:en.kind==='commander'?78:25+tier*4,color,life:en.kind==='commander'?1.0:0.42,t:0,type:'portal'});
+    if(tier>=2 || en.elite) spawnRadialBurst(en.x,en.y,color,en.kind==='commander'?22:6+tier,70+tier*18,2);
+  }
+
+  function spawnDeathFx(en){
+    const tier=getVisualTier();
+    const color=en.kind==='fast'?'#5fd0e0':en.kind==='armored'?'#c77b50':en.kind==='siege'?'#ff8748':en.kind==='bomber'?'#ffd34f':en.kind==='commander'?'#ff5349':en.elite?'#e8a33d':'#e0483f';
+    const power=(en.kind==='commander'?5:en.kind==='bomber'?2.8:en.elite?2.4:en.kind==='siege'?1.9:en.kind==='armored'?1.6:1);
+    pushFx({x:en.x,y:en.y,r:3,max:22*power+tier*4,color,life:0.30+power*0.08,t:0,type:'ring'});
+    spawnRadialBurst(en.x,en.y,color,Math.round((5+tier*2)*power),70+tier*24,1.8+power*.5);
+
+    if(tier>=2){
+      for(let i=0;i<Math.min(8,2+tier);i++){
+        pushFx({x:en.x+(Math.random()-0.5)*9,y:en.y+(Math.random()-0.5)*9,
+          vx:(Math.random()-0.5)*20,vy:-10-Math.random()*28,drag:1.8,
+          size:5+Math.random()*8,color:'rgba(55,65,78,.7)',life:.45+Math.random()*.45,t:0,type:'smoke'});
+      }
+    }
+    if(en.elite || tier>=4) addScreenShake(en.kind==='commander'?20:2.5+power*1.8);
+    if(en.kind==='commander'){
+      addScreenFlash('#ffcf8a',0.82);
+      damageVignetteAlpha=0;
+      for(let r=0;r<4;r++) pushFx({x:en.x,y:en.y,r:14+r*18,max:160+r*22,color:r%2?'#ffcf7a':'#ff5349',
+        life:.72+r*.12,t:-r*.05,type:'ring'});
+    }
+  }
+
+  function spawnCommandFx(key){
+    const tier=Math.max(2,getVisualTier());
+    const color=key==='recoveryWave'?'#52d9ff':key==='overload'?'#ff9a3c':key==='rapidFire'?'#6cbcff':'#9fddff';
+    addScreenFlash(color,key==='overload'?0.30:0.20);
+    addScreenShake(key==='overload'?7:4);
+    pushFx({x:base.x,y:base.y,r:base.radius,max:170+tier*14,color,life:.65,t:0,type:'ring'});
+    spawnRadialBurst(base.x,base.y,color,12+tier*3,100+tier*20,2.4);
+  }
+
+  function syncCollectorRobots(){
+    const cfg=getCollectorRobot();
+    coinDrones=[];
+    if(!cfg) return;
+    for(let i=0;i<cfg.count;i++){
+      const a=Math.PI*2*i/cfg.count;
+      coinDrones.push({x:base.x+Math.cos(a)*62,y:base.y+Math.sin(a)*62,
+        angle:a,facing:a+Math.PI/2,target:null,flash:0,beamPulse:Math.random()*Math.PI*2,cargo:0});
+    }
+  }
+
+  function releaseDroneTarget(coin){
+    for(const d of coinDrones){ if(d.target===coin) d.target=null; }
+  }
+
+  function updateCollectorRobots(dt){
+    const cfg=getCollectorRobot();
+    if(!cfg || coinDrones.length===0) return;
+    const reserved=new Set(coinDrones.map(d=>d.target).filter(Boolean));
+    for(let i=0;i<coinDrones.length;i++){
+      const d=coinDrones[i];
+      d.flash=Math.max(0,d.flash-dt*4);
+      d.beamPulse+=dt*6;
+      if(!d.target || coins.indexOf(d.target)===-1 || d.target.t<d.target.popDur){
+        d.target=null;
+        let best=null,bestDist=Infinity;
+        for(const c of coins){
+          if(c.t<c.popDur || reserved.has(c)) continue;
+          const dist=Math.hypot(c.tx-d.x,c.ty-d.y);
+          const baseDist=Math.hypot(c.tx-base.x,c.ty-base.y);
+          if(baseDist<=cfg.range && dist<bestDist){bestDist=dist;best=c;}
+        }
+        if(best){d.target=best;reserved.add(best);}
+      }
+      if(d.target){
+        const dx=d.target.tx-d.x,dy=d.target.ty-d.y,dist=Math.hypot(dx,dy)||1;
+        const speed=cfg.speed*(1+Math.min(.55,dist/500));
+        const move=Math.min(dist,speed*dt);
+        d.facing=Math.atan2(dy,dx)+Math.PI/2;
+        d.x+=dx/dist*move;d.y+=dy/dist*move;
+        if(dist<=10){
+          d.target.droneCollected=true;
+          d.target.droneCollector=d;
+          d.flash=1;d.cargo++;
+          if(d.cargo%8===0){
+            pushFx({x:d.x,y:d.y,r:4,max:86,color:'#72ffd0',life:.52,t:0,type:'ring'});
+            spawnRadialBurst(d.x,d.y,'#72ffd0',16,110,2.2);
+            spawnBanner(d.x,d.y-24,'회수 펄스!','#a8ffe2');
+            addScreenShake(2.5);
+            // 펄스는 주변 코인을 즉시 로봇 쪽으로 끌고, 근처 적에게 작은 실피해를 준다.
+            for(const c of coins){
+              if(c.t<c.popDur) continue;
+              const cd=Math.hypot(c.tx-d.x,c.ty-d.y);
+              if(cd<=145){ c.tx+=(d.x-c.tx)*.48; c.ty+=(d.y-c.ty)*.48; }
+            }
+            for(const en of enemies){
+              const ed=Math.hypot(en.x-d.x,en.y-d.y);
+              if(ed<=125) en.hp-=6+L('collectorDrone')*4;
+            }
+          }
+        }
+      } else {
+        d.angle+=dt*(.55+i*.04);
+        const rr=60+i*9+Math.sin(elapsed*1.8+i)*4;
+        const tx=base.x+Math.cos(d.angle)*rr,ty=base.y+Math.sin(d.angle)*rr;
+        const dx=tx-d.x,dy=ty-d.y,dist=Math.hypot(dx,dy)||1;
+        const move=Math.min(dist,cfg.speed*.52*dt);
+        d.facing=Math.atan2(dy,dx)+Math.PI/2;
+        d.x+=dx/dist*move;d.y+=dy/dist*move;
+      }
+    }
+  }
+
+  function chooseLaserTargets(count){
+    const pool=enemies.filter(en=>en.hp>0).slice();
+    pool.sort((a,b)=>{
+      const pa=(a.kind==='commander'?1200:a.kind==='siege'?820:a.kind==='bomber'?760:a.elite?360:a.kind==='armored'?180:0)-Math.hypot(a.x-base.x,a.y-base.y)*.18;
+      const pb=(b.kind==='commander'?1200:b.kind==='siege'?820:b.kind==='bomber'?760:b.elite?360:b.kind==='armored'?180:0)-Math.hypot(b.x-base.x,b.y-base.y)*.18;
+      return pb-pa;
+    });
+    return pool.slice(0,count);
+  }
+
+  function updateBaseLaser(dt){
+    baseLaserChargeFlash=Math.max(0,baseLaserChargeFlash-dt*5);
+    const cfg=getBaseLaser();
+    if(!cfg){baseLaserAimTargets=[];return;}
+    if(enemies.length===0){baseLaserAimTargets=[];return;}
+    const haste=commandAtkSpeedTimer>0?1.65:1;
+    baseLaserTimer+=dt*haste;
+    if(baseLaserTimer<cfg.interval) return;
+    baseLaserTimer=0;baseLaserChargeFlash=1;baseLaserShotCount++;
+    const targets=chooseLaserTargets(cfg.chains);
+    baseLaserAimTargets=targets.map(t=>({x:t.x,y:t.y}));
+    const pods=getLaserPodPositions();
+    const pulses=L('baseLaser')>=5?2:1;
+    for(let pulse=0;pulse<pulses;pulse++){
+      targets.forEach((target,idx)=>{
+        if(target.hp<=0) return;
+        let dmg=cfg.damage*Math.pow(.84,idx)*(pulse===0?1:.42);
+        if(target.kind==='commander') dmg*=1.18;
+        if(target.invulnTimer>0) dmg=0;
+        target.hp-=dmg;
+        const source=pods.length?pods[idx%pods.length]:base;
+        const color=pulse===0?(idx===0?'#7ff2ff':'#9bbcff'):'#ffffff';
+        pushFx({x:source.x,y:source.y,x2:target.x,y2:target.y,color,life:pulse===0?.27:.16,t:-pulse*.035,type:'tracer',width:(pulse===0?6.4:3.2)-idx*.5});
+        pushFx({x:target.x,y:target.y,r:4,max:31-idx*2,color,life:.30,t:0,type:'ring'});
+        spawnRadialBurst(target.x,target.y,color,Math.max(4,10-idx),110,2.2);
+        if(pulse===0) pushFx({x:target.x,y:target.y-12,text:'-'+Math.round(dmg),color,life:.48,t:0,type:'text',vy:-22,size:11,bold:true});
+      });
+    }
+    if(L('baseLaser')>=4 && baseLaserShotCount%3===0){
+      spawnBanner(base.x,base.y-72,'레이저 포드 과충전','#aef7ff');
+      pushFx({x:base.x,y:base.y,r:base.radius,max:125,color:'#8eeeff',life:.45,t:0,type:'ring'});
+    }
+    addScreenShake(targets.length>=3?6:4);
+    addScreenFlash('#8eeeff',targets.length>=3?.18:.10);
+  }
+
+  function spawnAssaultWave(phaseIdx){
+    if(enemies.length>=MAX_ENEMIES-18) return;
+    const readiness=getCombatReadiness();
+    const firstEdge=Math.floor(Math.random()*4);
+    const edges=[firstEdge];
+    // 만렙에 가까운 장기 작전은 초반부터 반대편 전선도 동시에 열어 병력이 한쪽에 몰리지 않게 한다.
+    if((phaseIdx>=5 && totalLevel()>=50) || (phaseIdx<=2 && readiness>=0.72)) edges.push((firstEdge+2)%4);
+    const names=edges.map(e=>['북부','동부','남부','서부'][e]);
+    const perEdge=Math.min(12,4+Math.floor(phaseIdx*1.45)+Math.floor(readiness*2));
+    assaultWaveCount++;
+    warnBanner.textContent='⚠ '+(edges.length>1?'양면 포위 공세':names[0]+' 집중 공세');warnBanner.classList.remove('show');void warnBanner.offsetWidth;warnBanner.classList.add('show');
+    spawnBanner(base.x,base.y-82,(edges.length>1?names.join('·')+' 동시 접근':names[0]+' 전선')+' · '+(perEdge*edges.length)+'기','#ff786e');
+    addScreenShake(5+phaseIdx*.9);
+    addScreenFlash('#ff5b4f',phaseIdx>=5?.10:.05);
+    for(const edge of edges){
+      for(let i=0;i<perEdge;i++){
+        let kind=null;
+        if(phaseIdx>=3 && i===perEdge-1) kind='bomber';
+        else if(phaseIdx>=4 && i===perEdge-2) kind='siege';
+        else if(phaseIdx>=2 && i===perEdge-3) kind='armored';
+        spawnEnemy(false,kind,edge);
+      }
+    }
+  }
+
   function fmtTime(t){ t=Math.max(0,Math.ceil(t)); const m=Math.floor(t/60), s=t%60; return (m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
+  function getCombatReadiness(){
+    // 성장한 계정일수록 45초 라운드의 초반부터 실제 전투가 시작된다.
+    // 저레벨 계정은 기존의 완만한 입문 난이도를 거의 유지한다.
+    return Math.max(0,Math.min(1,(totalLevel()-10)/65));
+  }
+
   function currentPhaseIndex(){
-    if(elapsed<15) return 0; if(elapsed<20) return 1; if(elapsed<25) return 2;
-    if(elapsed<30) return 3; if(elapsed<35) return 4; if(elapsed<40) return 5; return 6;
+    const duration=Math.max(15,ROUND_DURATION||15);
+    // 40~45초 작전은 첫 15초가 한 단계에 묶이지 않도록 전체 시간을 비율로 나눈다.
+    if(duration>=35){
+      const ratio=elapsed/duration;
+      if(ratio<0.12) return 0;
+      if(ratio<0.24) return 1;
+      if(ratio<0.38) return 2;
+      if(ratio<0.52) return 3;
+      if(ratio<0.67) return 4;
+      if(ratio<0.82) return 5;
+      return 6;
+    }
+    if(duration>=25){
+      if(elapsed<5) return 0; if(elapsed<10) return 1; if(elapsed<15) return 2;
+      if(elapsed<20) return 3; if(elapsed<25) return 4; if(elapsed<duration-2) return 5; return 6;
+    }
+    if(elapsed<5) return 0; if(elapsed<10) return 1; return 2;
+  }
+
+  function spawnOpeningPressure(){
+    const readiness=getCombatReadiness();
+    let count=1;
+    if(ROUND_DURATION>=25) count=2+Math.round(readiness*5);
+    if(ROUND_DURATION>=40) count+=Math.round(1+readiness*2);
+    count=Math.min(10,count);
+    for(let i=0;i<count;i++){
+      let kind=null;
+      if(readiness>=0.78 && i===count-1) kind='armored';
+      else if(readiness>=0.52 && i%4===2) kind='fast';
+      spawnEnemy(true,kind,i%4);
+    }
+    if(count>=6){
+      spawnBanner(base.x,base.y-78,'초기 포위망 · '+count+'기 접근','#ff8a76');
+      addScreenFlash('#ff6b57',0.08);
+    }
   }
 
   function startRound(){
@@ -777,22 +1306,64 @@
     commandTimer=0; commandAtkSpeedTimer=0; overloadTimer=0; manualLockTimer=0;
     gameSpeedMult=1;
     roundEnding=false; roundEndGrace=0;
+    screenShake=0; screenShakeX=0; screenShakeY=0;
+    screenFlashAlpha=0; damageVignetteAlpha=0; fxPulse=0;
+    lastVisualTier=-1; commanderEntranceTimer=0;
+    assaultWaveTimer=Math.max(4.1,6.8-getCombatReadiness()*2.7); assaultWaveCount=0;
+    baseLaserTimer=0; baseLaserChargeFlash=0;baseLaserShotCount=0;baseLaserAimTargets=[];
+    roundUnitAnnouncements=new Set();
+    overtimeActive=false;overtimeUsed=false;omegaVolleyTimer=4.8;
+    syncCollectorRobots();
     cmdBtn.classList.remove('show'); cmdPanel.classList.remove('show');
     phase='round';
     overlay.classList.remove('show');
     updateHud();
-    spawnEnemy(true);
+    spawnOpeningPressure();
   }
 
   function updateHud(){
     goldVal.textContent = Math.floor(gold);
     waveVal.textContent = wave;
-    troopVal.textContent = soldiers.length;
-    timeVal.textContent = fmtTime(timeLeft);
+    const unitCounts={rifler:0,shield:0,cannon:0};
+    for(const s of soldiers) unitCounts[s.type||'rifler']=(unitCounts[s.type||'rifler']||0)+1;
+    const mixText=soldiers.length?' · 소'+unitCounts.rifler+' 방'+unitCounts.shield+' 포'+unitCounts.cannon:'';
+    troopVal.textContent = soldiers.length+mixText+(coinDrones.length?' · 회'+coinDrones.length:'');
+    timeVal.textContent = overtimeActive ? 'OT '+fmtTime(timeLeft) : fmtTime(timeLeft);
     timeVal.classList.toggle('low', timeLeft<=5);
     const pct = Math.max(0, Math.min(100, (timeLeft/ROUND_DURATION)*100));
     roundBarFill.style.width = pct+'%';
     roundBarFill.style.background = timeLeft<=5 ? 'linear-gradient(90deg,#e0483f,#ff7a6e)' : 'linear-gradient(90deg,#3fbf7f,#e8a33d)';
+
+    const tier=getVisualTier();
+    fxTierValue.textContent=visualTierLabel(tier);
+    fxTierBadge.className='tier-'+tier;
+    if(tier!==lastVisualTier && lastVisualTier>=0 && tier>lastVisualTier){
+      spawnBanner(base.x,base.y-92,'전투 출력 '+visualTierLabel(tier)+' 단계','#ffd06e');
+      addScreenFlash('#6ebdff',0.10+tier*0.025);
+    }
+    lastVisualTier=tier;
+
+    if(comboCount>1 && comboTimer>0){
+      comboHudValue.textContent=(comboCount>=30?'ANNIHILATION ':comboCount>=15?'RAMPAGE ':comboCount>=8?'FURY ':'COMBO ')+'x'+comboCount;
+      comboHud.classList.add('show');
+    } else {
+      comboHud.classList.remove('show');
+    }
+
+    const boss=enemies && enemies.find(en=>en.kind==='commander' && en.hp>0);
+    if(boss){
+      const ratio=Math.max(0,boss.hp/boss.maxHp);
+      bossHud.classList.add('show');
+      bossHudFill.style.width=(ratio*100).toFixed(1)+'%';
+      bossHpText.textContent=Math.ceil(ratio*100)+'%';
+    } else {
+      bossHud.classList.remove('show');
+    }
+
+    dangerVignetteAlpha=Math.max(damageVignetteAlpha,base&&base.hp/base.maxHp<0.3?(0.18+(1-base.hp/base.maxHp)*0.38):0);
+    dangerVignette.style.opacity=Math.max(0,Math.min(.8,dangerVignetteAlpha)).toFixed(3);
+    screenFlashDom.style.background=screenFlashCss;
+    screenFlashDom.style.opacity=Math.max(0,Math.min(1,screenFlashAlpha)).toFixed(3);
   }
 
   function pointFromEvent(e){
@@ -870,81 +1441,210 @@
   canvas.addEventListener('touchmove', (e)=>{ setCursorPoint(pointFromEvent(e)); }, {passive:true});
   canvas.addEventListener('mouseleave', clearCursor);
 
-  function spawnSoldier(source){
-    const ang = Math.random()*Math.PI*2;
+  const SOLDIER_TYPE_DATA = {
+    rifler:{name:'코어 라이플러',sprite:'rifler',hp:24,dmg:3.8,speed:68,range:88,atkInterval:.65,bodyRadius:10,blockRadius:31,guardRadius:92,drawW:28,drawH:34,damageTakenMult:1},
+    shield:{name:'실드 벌크',sprite:'shield',hp:66,dmg:2.4,speed:43,range:22,atkInterval:.95,bodyRadius:15,blockRadius:62,guardRadius:76,drawW:38,drawH:35,damageTakenMult:.58},
+    cannon:{name:'블래스트 캐논',sprite:'cannon',hp:30,dmg:12.8,speed:45,range:148,atkInterval:1.45,bodyRadius:14,blockRadius:30,guardRadius:128,drawW:35,drawH:40,damageTakenMult:.92,splashRadius:50,splashRatio:.42}
+  };
+
+  function chooseSoldierType(){
+    const cannonChance=getBlastCannonChancePct();
+    const shieldChance=getShieldBulkChancePct();
+    const roll=Math.random()*100;
+    if(roll<cannonChance) return 'cannon';
+    if(roll<cannonChance+shieldChance) return 'shield';
+    return 'rifler';
+  }
+
+  function getFormationPoint(s){
+    const slot=Math.max(0,s.formationSlot||0);
+    const roleOffset=s.type==='shield'?-16:s.type==='cannon'?24:0;
+    const radius=Math.min(Math.min(W,H)*0.34,62+Math.sqrt(slot+1)*13+roleOffset);
+    const angle=s.guardAngle;
+    return {x:base.x+Math.cos(angle)*radius,y:base.y+Math.sin(angle)*radius};
+  }
+
+  function getEnemyEngagementCap(en){
+    let cap=en.kind==='commander'?30:en.kind==='siege'?10:en.kind==='armored'?7:en.kind==='bomber'?5:en.kind==='fast'?3:4;
+    if(en.elite) cap+=2;
+    return cap;
+  }
+
+  function angleDistance(a,b){
+    let d=Math.abs(a-b)%(Math.PI*2);
+    return d>Math.PI?Math.PI*2-d:d;
+  }
+
+  function damageSoldier(unit,amount){
+    if(!unit || unit.hp<=0) return 0;
+    const actual=amount*(unit.damageTakenMult||1);
+    unit.hp-=actual;
+    if(unit.type==='shield' && amount>=4){
+      pushFx({x:unit.x,y:unit.y,r:5,max:24,color:'#6fe8ff',life:.22,t:0,type:'ring'});
+    }
+    return actual;
+  }
+
+  function spawnSoldier(source,forcedType){
     soldierSeq++;
-    const hp = 22*getSoldierHpMult(), dmg = 6*getSoldierDamageMult();
-    soldiers.push({
-      x: base.x+Math.cos(ang)*40, y: base.y+Math.sin(ang)*40,
-      hp, maxHp:hp, dmg, speed:60*getSoldierSpeedMult(), range:16,
+    const formationSlot=soldierSeq-1;
+    const ang=formationSlot*GOLDEN_ANGLE;
+    const type=forcedType||chooseSoldierType();
+    const cfg=SOLDIER_TYPE_DATA[type]||SOLDIER_TYPE_DATA.rifler;
+    const hp = cfg.hp*getSoldierHpMult(), dmg = cfg.dmg*getSoldierDamageMult();
+    const unit={
+      type,name:cfg.name,sprite:cfg.sprite,
+      x: base.x+Math.cos(ang)*(base.radius+cfg.bodyRadius+8), y: base.y+Math.sin(ang)*(base.radius+cfg.bodyRadius+8),
+      hp, maxHp:hp, dmg, speed:cfg.speed*getSoldierSpeedMult(), range:cfg.range,
+      atkInterval:cfg.atkInterval,bodyRadius:cfg.bodyRadius,blockRadius:cfg.blockRadius,guardRadius:cfg.guardRadius,
+      damageTakenMult:cfg.damageTakenMult,drawW:cfg.drawW,drawH:cfg.drawH,
+      splashRadius:cfg.splashRadius||0,splashRatio:cfg.splashRatio||0,
       atkCd:0, target:null, spawnTime:elapsed, fromReserve: source==='reserve',
-      guardAngle: soldierSeq*GOLDEN_ANGLE, approachAngle: Math.random()*Math.PI*2
-    });
+      formationSlot,guardAngle:ang,approachAngle:ang+Math.PI*.35,
+      facing:ang+Math.PI/2,recoil:0
+    };
+    soldiers.push(unit);
+    const typeColor=type==='shield'?'#6fe8ff':type==='cannon'?'#9fc7ff':'#5daeff';
+    const spawnColor=source==='reserve'?'#9bf0a8':source==='auto'?typeColor:typeColor;
+    pushFx({x:unit.x,y:unit.y,r:3,max:type==='shield'?30:type==='cannon'?28:22,color:spawnColor,life:.34,t:0,type:'portal'});
+    if(type!=='rifler' && !roundUnitAnnouncements.has(type)){
+      roundUnitAnnouncements.add(type);
+      spawnBanner(unit.x,unit.y-34,cfg.name+' 전개',type==='shield'?'#8af3ff':'#b8d4ff');
+    }
+    if(source==='auto' && getVisualTier()>=3) spawnRadialBurst(unit.x,unit.y,spawnColor,type==='cannon'?7:4,45,1.2);
     updateHud();
     if(source==='manual'){
       manualSpawnCount++;
       const every = getReserveForceEvery();
       if(every>0 && manualSpawnCount%every===0){
         spawnSoldier('reserve');
-        spawnBanner(base.x, base.y-40, '예비 병력!', '#9bdc9b');
+        spawnBanner(base.x, base.y-40, '예비 혼합부대!', '#9bdc9b');
       }
     }
   }
 
-  function spawnEnemy(closeStart, forcedKind){
+  function spawnEnemy(closeStart, forcedKind, forcedEdge){
     let x,y;
     if(closeStart){
-      const ang = Math.random()*Math.PI*2;
-      x = base.x+Math.cos(ang)*Math.max(160, Math.min(W,H)*0.32);
-      y = base.y+Math.sin(ang)*Math.max(160, Math.min(W,H)*0.32);
+      const edgeAngles=[-Math.PI/2,0,Math.PI/2,Math.PI];
+      const ang = Number.isInteger(forcedEdge)
+        ? edgeAngles[((forcedEdge%4)+4)%4]+(Math.random()-.5)*0.72
+        : Math.random()*Math.PI*2;
+      const openingRadius=Math.max(170,Math.min(W,H)*(0.28+Math.random()*0.045));
+      x = base.x+Math.cos(ang)*openingRadius;
+      y = base.y+Math.sin(ang)*openingRadius;
     } else {
-      const edge = Math.floor(Math.random()*4), pad=20;
-      if(edge===0){ x=Math.random()*W; y=-pad; }
-      else if(edge===1){ x=W+pad; y=Math.random()*H; }
-      else if(edge===2){ x=Math.random()*W; y=H+pad; }
-      else { x=-pad; y=Math.random()*H; }
+      const edge = Number.isInteger(forcedEdge)?forcedEdge:Math.floor(Math.random()*4), pad=20;
+      const cluster=Number.isInteger(forcedEdge);
+      const spreadX=Math.max(80,W*.22),spreadY=Math.max(80,H*.22);
+      if(edge===0){ x=cluster?cx+(Math.random()-.5)*spreadX:Math.random()*W; y=-pad; }
+      else if(edge===1){ x=W+pad; y=cluster?cy+(Math.random()-.5)*spreadY:Math.random()*H; }
+      else if(edge===2){ x=cluster?cx+(Math.random()-.5)*spreadX:Math.random()*W; y=H+pad; }
+      else { x=-pad; y=cluster?cy+(Math.random()-.5)*spreadY:Math.random()*H; }
     }
     const phaseIdx = currentPhaseIndex();
     const t = elapsed/25;
-    let hp = 14+wave*3.5+t*5, speed = 34+Math.random()*12+Math.min(26,wave*1.1), dmg = 7+Math.min(18,wave*0.7);
+    let hp = 15+wave*3.8+t*5.5, speed = 36+Math.random()*13+Math.min(28,wave*1.2), dmg = 6.5+Math.min(18,wave*0.65)+phaseIdx*0.75;
+    if(phaseIdx===0){hp*=0.94;dmg*=0.82;}
     const goldBase = 1;
     let kind = forcedKind || 'normal';
     if(!forcedKind){
       const roll = Math.random();
-      // 적 종류의 첫 등장 시점을 기존보다 한 단계(5초) 앞당긴다.
-      // 15초 이후: 빠른 적 22%
-      // 20초 이후: 빠른 적 22% + 장갑 적 15% + 일반 적 63%
-      // 누적 확률 구간을 사용해 빠른 적 판정과 장갑 적 판정이 겹치지 않게 한다.
-      if(phaseIdx>=2){
+      const readiness=getCombatReadiness();
+      // 성장 계정에서는 첫 10초부터 속도형·장갑형이 섞여 기본 적이 출현 즉시 삭제되는 현상을 줄인다.
+      if(phaseIdx>=6){
+        if(roll<0.20) kind='fast';
+        else if(roll<0.39) kind='armored';
+        else if(roll<0.51) kind='siege';
+        else if(roll<0.64) kind='bomber';
+      } else if(phaseIdx>=4){
+        if(roll<0.21) kind='fast';
+        else if(roll<0.39) kind='armored';
+        else if(roll<0.49) kind='siege';
+        else if(roll<0.59) kind='bomber';
+      } else if(phaseIdx>=2){
         if(roll<0.22) kind='fast';
         else if(roll<0.37) kind='armored';
-      } else if(phaseIdx>=1 && roll<0.22){
-        kind='fast';
+        else if(roll<0.44) kind='siege';
+        else if(phaseIdx>=3 && roll<0.50) kind='bomber';
+      } else if(phaseIdx===1){
+        if(roll<0.20+readiness*0.07) kind='fast';
+        else if(readiness>=0.45 && roll<0.20+readiness*0.20) kind='armored';
+        else if(readiness>=0.78 && roll<0.20+readiness*0.25) kind='bomber';
+      } else if(readiness>=0.40){
+        if(roll<0.10+readiness*0.10) kind='fast';
+        else if(readiness>=0.70 && roll<0.10+readiness*0.20) kind='armored';
       }
     }
-    if(kind==='fast'){ speed*=1.6; hp*=0.75; }
-    if(kind==='armored'){ hp*=2.2; speed*=0.65; dmg*=1.12; }
+    if(kind==='siege'){
+      const siegeCap=phaseIdx>=6?7:phaseIdx>=5?6:phaseIdx>=3?4:2;
+      if(enemies.filter(en=>en.kind==='siege'&&en.hp>0).length>=siegeCap) kind='armored';
+    }
+    if(kind==='fast'){ speed*=1.72; hp*=0.82; dmg*=0.92; }
+    if(kind==='armored'){ hp*=2.4; speed*=0.64; dmg*=1.18; }
+    if(kind==='siege'){ hp*=1.7; speed*=0.58; dmg*=1.0; }
+    if(kind==='bomber'){ hp*=0.78; speed*=2.05; dmg*=1.38; }
     let elite=false, eliteMult=1;
     if(kind!=='commander' && Math.random()*100 < getEliteChancePct(phaseIdx)){
-      elite=true; hp*=2.5; dmg*=1.5; speed*=0.9; eliteMult=2;
+      elite=true; hp*=2.4; dmg*=1.4; speed*=0.9; eliteMult=2;
     }
-    if(kind==='commander'){ hp*=10; dmg*=2.2; speed*=0.82; eliteMult=3; }
+    if(kind==='commander'){ hp*=11.5; dmg*=1.85; speed*=0.78; eliteMult=3; }
 
-    let soldierDmg=dmg*0.45, soldierAtkInterval=0.72, soldierHitCount=1;
-    if(kind==='fast'){ soldierDmg=dmg*0.32; soldierAtkInterval=0.38; }
-    else if(kind==='armored'){ soldierDmg=dmg*0.62; soldierAtkInterval=0.90; }
-    else if(kind==='commander'){ soldierDmg=dmg*0.58; soldierAtkInterval=1.10; soldierHitCount=3; }
-    soldierDmg=Math.max(2, soldierDmg);
+    const threat=getThreatProfile();
+    hp*=threat.hp;
+    // 병력이 크게 누적된 고레벨 전투에서는 초반 적이 한 발에 사라지지 않도록 체력만 완만하게 보정한다.
+    const armyPressure=Math.max(0,Math.min(1,((soldiers&&soldiers.length)||0)-8)/42);
+    hp*=1+armyPressure*(phaseIdx<=2?0.34:0.20);
+    const rawDmg=dmg;
+    dmg=rawDmg*threat.baseDamage;
+    let soldierDmg=rawDmg*threat.soldierDamage*0.42, soldierAtkInterval=0.72, soldierHitCount=1;
+    let baseAttackRange=base.radius+8, baseAtkInterval=1.15;
+    if(kind==='fast'){ soldierDmg=rawDmg*threat.soldierDamage*0.34; soldierAtkInterval=0.38; baseAtkInterval=0.74; }
+    else if(kind==='armored'){ soldierDmg=rawDmg*threat.soldierDamage*0.62; soldierAtkInterval=0.82; soldierHitCount=2; baseAtkInterval=0.92; }
+    else if(kind==='siege'){ soldierDmg=rawDmg*threat.soldierDamage*0.40; soldierAtkInterval=1.05; baseAttackRange=165; baseAtkInterval=1.85; }
+    else if(kind==='bomber'){ soldierDmg=0; soldierAtkInterval=9; soldierHitCount=0; baseAtkInterval=9; }
+    else if(kind==='commander'){ soldierDmg=rawDmg*threat.soldierDamage*0.58; soldierAtkInterval=.88; soldierHitCount=5; baseAtkInterval=.86; }
+    if(elite && soldierHitCount<2) soldierHitCount=2;
+    soldierDmg=Math.max(2.2, soldierDmg);
 
-    enemies.push({x,y,hp,maxHp:hp,speed,dmg,gold:goldBase,atkCd:0,
-      elite:(elite||kind==='commander'),eliteMult,kind,
-      soldierDmg,soldierAtkInterval,soldierHitCount});
+    const spawnedEnemy={x,y,hp,maxHp:hp,speed,dmg,gold:goldBase,atkCd:Math.random()*.35,
+      elite:(elite||kind==='commander'),eliteMult,kind,phaseIdx,
+      soldierDmg,soldierAtkInterval,soldierHitCount,baseAttackRange,baseAtkInterval,spawnFx:0.42,
+      detonated:false,specialCd:kind==='commander'?2.4:0,bossBreak1:false,bossBreak2:false,armorFlash:0,invulnTimer:0};
+    enemies.push(spawnedEnemy);
+    spawnEnemyEntranceFx(spawnedEnemy);
   }
 
-  function spawnPulse(x,y,color){ particles.push({x,y,r:base.radius,max:base.radius+40,color,life:0.5,t:0,type:'ring'}); }
-  function spawnHit(x,y,color){ particles.push({x,y,r:3,color,life:0.25,t:0,type:'spark'}); }
-  function spawnGoldPop(x,y,amount,color){ particles.push({x,y,text:'+'+amount,color:color||'#e8a33d',life:0.7,t:0,type:'text',vy:-30}); }
-  function spawnBanner(x,y,text,color){ particles.push({x,y,text,color,life:1.2,t:0,type:'text',vy:-18}); }
+  function spawnPulse(x,y,color){
+    pushFx({x,y,r:base?base.radius:8,max:(base?base.radius:8)+40,color,life:0.5,t:0,type:'ring'});
+  }
+  function spawnHit(x,y,color){
+    const tier=getVisualTier();
+    pushFx({x,y,r:3,color,life:0.22,t:0,type:'spark'});
+    if(tier>=2) spawnRadialBurst(x,y,color,2+tier,35+tier*12,1.25);
+  }
+  function spawnGoldPop(x,y,amount,color){ pushFx({x,y,text:'+'+amount,color:color||'#e8a33d',life:0.7,t:0,type:'text',vy:-30,size:12}); }
+  function spawnBonusGoldPop(x,y,amount){
+    pushFx({x:x+14,y:y-12,text:'보너스 +'+amount,color:'#ffe58a',life:0.9,t:0,type:'text',vy:-34,size:13});
+  }
+  function applyGoldGainAccumulator(c, baseGained, popX, popY){
+    // 색깔 코인은 제외하고 일반 노란 코인에만 적용한다.
+    if(!c || c.coinType!=='yellow') return 0;
+    const pct=getGoldGainPct();
+    if(pct<=0 || baseGained<=0) return 0;
+
+    meta.goldGainRemainder += baseGained*(pct/100);
+    // 부동소수점 오차로 0.999999...에서 지급이 늦어지는 일을 막는다.
+    const bonus=Math.floor(meta.goldGainRemainder+1e-9);
+    if(bonus<=0) return 0;
+
+    meta.goldGainRemainder=Math.max(0,meta.goldGainRemainder-bonus);
+    gold+=bonus;
+    earnedThisRound+=bonus;
+    spawnBonusGoldPop(popX,popY,bonus);
+    return bonus;
+  }
+  function spawnBanner(x,y,text,color){ pushFx({x,y,text,color,life:1.2,t:0,type:'text',vy:-18,size:14,bold:true}); }
   const COIN_TYPES = {
     yellow:{value:1, pop:'#e8a33d'},
     blue:{value:5, pop:'#52b9ff'},
@@ -983,11 +1683,14 @@
   }
 
   function spawnEnemyCoinDrops(defeated){
-    let count=1;
-    if(defeated.kind==='commander') count=8+Math.floor(Math.random()*5); // 8~12개
-    else if(defeated.elite) count=3;
-    else if(defeated.kind==='armored') count=2;
-    else if(defeated.kind==='fast') count=Math.random()<0.20?2:1;
+    const lateBonus=defeated.phaseIdx>=6?3:defeated.phaseIdx>=5?2:defeated.phaseIdx>=4?1:0;
+    let count=1+(defeated.phaseIdx>=3?1:0);
+    if(defeated.kind==='commander') count=42+Math.floor(Math.random()*15); // 42~56개
+    else if(defeated.kind==='siege') count=6+lateBonus;
+    else if(defeated.kind==='armored') count=5+lateBonus;
+    else if(defeated.kind==='fast') count=3+lateBonus;
+    else if(defeated.kind==='bomber') count=3+lateBonus;
+    if(defeated.elite && defeated.kind!=='commander') count+=3;
 
     // 색깔 코인 확률은 적 한 마리당 한 번만 판정한다.
     // 다중 드롭의 나머지 코인은 일반 코인으로 만들어 희귀 코인 가치가 과도하게 폭증하지 않게 한다.
@@ -1003,29 +1706,30 @@
         coinType:i===0?featuredType:'yellow',
         angle,
         minDist:commander?48:10,
-        maxDist:commander?108:(defeated.elite?44:30),
+        maxDist:commander?145:(defeated.kind==='siege'?62:defeated.elite?52:38),
         popDur:commander?0.55+Math.random()*0.20:0.35+Math.random()*0.08
       });
     }
 
     if(commander){
-      particles.push({x:defeated.x,y:defeated.y,r:10,max:120,color:'#e8a33d',life:0.72,t:0,type:'ring'});
-      particles.push({x:defeated.x,y:defeated.y,r:24,max:150,color:'#ffcf7a',life:0.90,t:0,type:'ring'});
+      pushFx({x:defeated.x,y:defeated.y,r:10,max:120,color:'#e8a33d',life:0.72,t:0,type:'ring'});
+      pushFx({x:defeated.x,y:defeated.y,r:24,max:150,color:'#ffcf7a',life:0.90,t:0,type:'ring'});
       spawnBanner(defeated.x,defeated.y-34,'코인 폭발!','#ffcf7a');
     }
   }
   function separate(units,minDist){
     for(let i=0;i<units.length;i++) for(let j=i+1;j<units.length;j++){
       const a=units[i], b=units[j]; const dx=b.x-a.x, dy=b.y-a.y; let d=Math.hypot(dx,dy);
-      if(d<minDist){ if(d===0)d=0.01; const ov=(minDist-d)/2, nx=dx/d, ny=dy/d; a.x-=nx*ov; a.y-=ny*ov; b.x+=nx*ov; b.y+=ny*ov; }
+      const desired=Number.isFinite(minDist)?minDist:Math.max(16,(a.bodyRadius||8)+(b.bodyRadius||8)+2);
+      if(d<desired){ if(d===0)d=0.01; const ov=(desired-d)/2, nx=dx/d, ny=dy/d; a.x-=nx*ov; a.y-=ny*ov; b.x+=nx*ov; b.y+=ny*ov; }
     }
   }
 
   const COMMAND_DEFS = {
-    reinforce:{ name:'긴급 증원', desc:'병사 3기 즉시 생성' },
-    rapidFire:{ name:'집중 포화', desc:'8초간 전체 공격속도 +30%' },
+    reinforce:{ name:'긴급 증원', desc:'병사 6기 즉시 생성' },
+    rapidFire:{ name:'집중 포화', desc:'10초간 전체 공격속도 +45% · 자동 레이저 가속' },
     recoveryWave:{ name:'회수 파동', desc:'화면 골드 즉시 회수 + 체력 12% 회복' },
-    overload:{ name:'생산 과부하', desc:'8초간 수동 소환 50% · 자동 생산 25% 가속 (이후 1초 정지)' }
+    overload:{ name:'생산 과부하', desc:'10초간 수동 소환 60% · 자동 생산 40% 가속 (이후 1초 정지)' }
   };
   function maybeShowCommandBtn(){
     if(commandState==='idle' && elapsed >= ROUND_DURATION/2){ commandState='ready'; cmdBtn.classList.add('show'); }
@@ -1047,18 +1751,27 @@
   function pickCommand(key){ applyCommand(key); closeCommandUI(); }
   function closeCommandUI(){ commandState='done'; gameSpeedMult=1; cmdPanel.classList.remove('show'); }
   function applyCommand(key){
-    if(key==='reinforce'){ for(let i=0;i<3;i++) spawnSoldier('command'); }
-    else if(key==='rapidFire'){ commandAtkSpeedTimer=8; }
+    spawnCommandFx(key);
+    if(key==='reinforce'){
+      for(let i=0;i<6;i++){
+        spawnSoldier('command');
+        const a=Math.PI*2*i/6+elapsed;
+        pushFx({x:base.x+Math.cos(a)*48,y:base.y+Math.sin(a)*48,r:4,max:32,color:'#8fd5ff',life:.45,t:0,type:'portal'});
+      }
+    }
+    else if(key==='rapidFire'){ commandAtkSpeedTimer=10; }
     else if(key==='recoveryWave'){
       for(let i=coins.length-1;i>=0;i--){
         const c=coins[i]; const gained=c.value*getGoldMultiplier(c.eliteMult);
         gold+=gained; earnedThisRound+=gained;
         const shown=Math.max(1,Math.floor(gained));
-        spawnGoldPop(c.tx,c.ty,shown,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop); coins.splice(i,1);
+        spawnGoldPop(c.tx,c.ty,shown,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop);
+        applyGoldGainAccumulator(c,gained,c.tx,c.ty);
+        coins.splice(i,1);
       }
       base.hp = Math.min(base.maxHp, base.hp+base.maxHp*0.12);
       spawnBanner(base.x, base.y-60, '회수 파동!', '#4fa3e3');
-    } else if(key==='overload'){ overloadTimer=8; manualLockTimer=0; }
+    } else if(key==='overload'){ overloadTimer=10; manualLockTimer=0; spawnSoldier('auto'); spawnSoldier('auto'); }
   }
 
   function activateEmergencyRepair(fromLethalHit){
@@ -1071,7 +1784,24 @@
     repairPerSec=(base.maxHp*healPct/100)/4;
     if(fromLethalHit) base.hp=Math.max(1,base.hp);
     spawnBanner(base.x, base.y-60, fromLethalHit?'비상 수리 · 치명타 방어':'비상 수리 가동', '#3fbf7f');
+    for(let r=0;r<3;r++) pushFx({x:base.x,y:base.y,r:base.radius+r*10,max:105+r*22,color:r===1?'#b6fff0':'#3fbf7f',life:.65+r*.12,t:-r*.05,type:'ring'});
+    spawnRadialBurst(base.x,base.y,'#72ffc3',24,125,2.3);
+    addScreenFlash('#5dffc0',.18);addScreenShake(5);
     return true;
+  }
+
+  function triggerBossPhaseBreak(en,phaseNo){
+    const ratio=en.hp/en.maxHp;
+    const coinCount=phaseNo===1?10:16;
+    en.armorFlash=1;en.invulnTimer=1.05;
+    spawnBanner(en.x,en.y-45,phaseNo===1?'지휘관 장갑 파괴!':'지휘관 코어 노출!','#ffcf68');
+    for(let r=0;r<4;r++) pushFx({x:en.x,y:en.y,r:8+r*9,max:95+r*22,color:r%2?'#ffd36d':'#ff554d',life:.55+r*.10,t:-r*.035,type:'ring'});
+    spawnRadialBurst(en.x,en.y,'#ffd16a',30+phaseNo*8,175,2.8);
+    for(let i=0;i<coinCount;i++) spawnCoin(en.x,en.y,1,1,{coinType:i===coinCount-1&&phaseNo===2?'blue':'yellow',minDist:28,maxDist:118,popDur:.48+Math.random()*.12});
+    const edge=Math.floor(Math.random()*4);
+    const adds=phaseNo===1?5:8;
+    for(let i=0;i<adds;i++) spawnEnemy(false,i===adds-1?'bomber':(i===adds-2?'armored':null),edge);
+    addScreenFlash('#ffd06a',phaseNo===1?.30:.42);addScreenShake(phaseNo===1?11:16);
   }
 
   function damageBase(amount){
@@ -1089,10 +1819,25 @@
     if(commandState==='open'){ commandTimer -= rawDt; if(commandTimer<=0) closeCommandUI(); }
     const dt = rawDt*gameSpeedMult;
     elapsed += dt;
+    screenShake=Math.max(0,screenShake-dt*16);
+    screenFlashAlpha=Math.max(0,screenFlashAlpha-dt*2.8);
+    damageVignetteAlpha=Math.max(0,damageVignetteAlpha-dt*1.6);
+    commanderEntranceTimer=Math.max(0,commanderEntranceTimer-dt);
+    fxPulse+=dt;
 
     if(!roundEnding){
       timeLeft -= dt;
-      if(timeLeft<=0){ timeLeft=0; roundEnding=true; roundEndGrace=1.8; }
+      if(timeLeft<=0){
+        const livingBoss=enemies.find(en=>en.kind==='commander'&&en.hp>0);
+        if(livingBoss && !overtimeUsed){
+          overtimeUsed=true;overtimeActive=true;timeLeft=8;
+          warnBanner.textContent='⚠ 지휘관 격파 오버타임';warnBanner.classList.remove('show');void warnBanner.offsetWidth;warnBanner.classList.add('show');
+          spawnBanner(base.x,base.y-82,'OVERTIME · 8초','#ffcf68');
+          addScreenFlash('#ff674f',.34);addScreenShake(12);
+        } else {
+          timeLeft=0;roundEnding=true;roundEndGrace=1.8;
+        }
+      }
     }
     updateHud();
     if(roundEnding){
@@ -1117,28 +1862,49 @@
 
     const phaseIdx = currentPhaseIndex();
     if(!roundEnding){
-      spawnInterval = Math.max(0.55, 1.15-elapsed*0.0065);
+      const readiness=getCombatReadiness();
+      const phaseIntervals=[1.08,0.78,0.59,0.46,0.36,0.30,0.26];
+      const earlyWeight=Math.max(0,1-elapsed/18);
+      // 만렙 장기 작전은 초반 생성 간격을 최대 42% 단축하고, 이후에는 기존 후반 밀도로 자연스럽게 연결한다.
+      spawnInterval=phaseIntervals[Math.min(6,phaseIdx)]*(1-readiness*0.42*earlyWeight);
       spawnTimer += dt;
-      if(spawnTimer>=spawnInterval && phaseIdx<6){
-        spawnTimer=0; spawnEnemy(false);
-        if(phaseIdx>=1 && Math.random()<0.3) spawnEnemy(false);
+      if(spawnTimer>=spawnInterval && enemies.length<MAX_ENEMIES){
+        spawnTimer=0;
+        let batch=phaseIdx>=5?3:phaseIdx>=3?2:1;
+        if(phaseIdx>=2 && Math.random()<(phaseIdx>=5?.42:.28)) batch++;
+        if(phaseIdx<=1 && Math.random()<readiness*(phaseIdx===0?.62:.48)) batch++;
+        batch=Math.min(batch,MAX_ENEMIES-enemies.length);
+        for(let i=0;i<batch;i++) spawnEnemy(false);
       }
-      if(phaseIdx===4){
+      assaultWaveTimer-=dt;
+      if(ROUND_DURATION>=25 && elapsed>=4 && assaultWaveTimer<=0){
+        spawnAssaultWave(phaseIdx);
+        const baseWaveDelay=phaseIdx>=6?4.8:phaseIdx>=5?5.4:phaseIdx>=3?6.5:7.5;
+        assaultWaveTimer=Math.max(4.6,baseWaveDelay-readiness*1.8);
+      }
+      if(phaseIdx>=4){
         burstTimer -= dt;
-        if(burstTimer<=0){ burstTimer=4; for(let i=0;i<4;i++) spawnEnemy(false); }
+        if(burstTimer<=0 && enemies.length<MAX_ENEMIES-8){
+          burstTimer=phaseIdx>=6?2.4:phaseIdx===5?3.0:3.6;
+          for(let i=0;i<(phaseIdx>=6?8:phaseIdx===5?6:5);i++) spawnEnemy(false);
+        }
       }
-      // 지휘관도 한 단계 앞당겨 40초 작전의 35초 지점부터 등장한다.
-      if(!commanderSpawned && elapsed>=35 && ROUND_DURATION>=40){
+      // 지휘관은 종료 15초 전에 등장하며, 생존 중 시간이 끝나면 8초 오버타임으로 이어진다.
+      if(!commanderSpawned && elapsed>=getCommanderSpawnTime() && ROUND_DURATION>=40){
         commanderSpawned=true;
         warnBanner.textContent='⚠ 지휘관 최종 공세'; warnBanner.classList.remove('show'); void warnBanner.offsetWidth; warnBanner.classList.add('show');
         spawnBanner(base.x, base.y-76, '최종 목표: 지휘관 처치', '#e8a33d');
+        commanderEntranceTimer=2.2;
+        addScreenShake(14);
+        addScreenFlash('#ff5a4f',0.42);
+        for(let r=0;r<3;r++) pushFx({x:base.x,y:base.y,r:70+r*34,max:260+r*42,color:'#e0483f',life:.8+r*.2,t:-r*.08,type:'ring'});
         spawnEnemy(false, 'commander');
       }
     }
     wave = 1+Math.floor(elapsed/8);
 
     const autoInt = getAutoSpawnInterval();
-    if(autoInt){ autoTimer+=dt; if(autoTimer>=autoInt){ autoTimer=0; spawnSoldier('auto'); } }
+    if(autoInt){ autoTimer+=dt; if(autoTimer>=autoInt){ autoTimer=0; for(let i=0;i<getAutoSpawnBatch();i++) spawnSoldier('auto'); } }
 
     // 수동 소환 쿨다운은 마우스를 떼어도 계속 흐른다.
     // 재클릭은 쿨다운을 초기화하지 않으므로 연타 소환이 불가능하다.
@@ -1148,47 +1914,224 @@
       manualSpawnCooldown = getManualSpawnInterval();
     }
 
+    updateBaseLaser(dt);
+    updateCollectorRobots(dt);
+
+    omegaVolleyTimer-=dt;
+    if(!roundEnding && isOmegaVolleyUnlocked() && getVisualTier()>=4 && omegaVolleyTimer<=0 && enemies.length){
+      omegaVolleyTimer=getVisualTier()>=5?5.2:6.5;
+      const firing=soldiers.slice().sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,Math.min(24,soldiers.length));
+      const priority=enemies.filter(en=>en.hp>0).sort((a,b)=>{
+        const ap=(a.kind==='commander'?900:a.kind==='bomber'?500:a.kind==='siege'?430:a.elite?260:0)-Math.hypot(a.x-base.x,a.y-base.y)*.12;
+        const bp=(b.kind==='commander'?900:b.kind==='bomber'?500:b.kind==='siege'?430:b.elite?260:0)-Math.hypot(b.x-base.x,b.y-base.y)*.12;
+        return bp-ap;
+      });
+      spawnBanner(base.x,base.y-94,'전군 일제사격!','#dff7ff');
+      firing.forEach((s,i)=>{
+        const target=priority[i%Math.max(1,Math.min(priority.length,12))];
+        if(!target) return;
+        const dmg=s.dmg*.62;
+        target.hp-=dmg;
+        const delay=-(i%6)*.018;
+        pushFx({x:s.x,y:s.y,x2:target.x,y2:target.y,color:i%3===0?'#ffffff':'#72c9ff',life:.22,t:delay,type:'tracer',width:2.4+(i%3===0?1.1:0)});
+      });
+      pushFx({x:base.x,y:base.y,r:base.radius,max:185,color:'#75d8ff',life:.60,t:0,type:'ring'});
+      spawnRadialBurst(base.x,base.y,'#b8efff',30,155,2.0);
+      addScreenFlash('#a8e9ff',.18);addScreenShake(8);
+    }
+
     const targetCount = new Map();
-    for(const s of soldiers){ if(s.target && s.target.hp>0) targetCount.set(s.target,(targetCount.get(s.target)||0)+1); }
+    // 한 적에게 붙을 수 있는 병력 수를 제한한다. 초과 병력은 자기 방어 슬롯으로 복귀한다.
+    for(const s of soldiers){
+      if(!s.target || s.target.hp<=0 || enemies.indexOf(s.target)===-1){ s.target=null; continue; }
+      const assigned=targetCount.get(s.target)||0;
+      if(assigned>=getEnemyEngagementCap(s.target)) s.target=null;
+      else targetCount.set(s.target,assigned+1);
+    }
     const focusBonus = getFocusFireBonusPct();
     function pickTarget(s){
       let best=null, bestScore=Infinity;
+      const formation=getFormationPoint(s);
+      const homeAngle=Math.atan2(formation.y-base.y,formation.x-base.x);
       for(const en of enemies){
-        const d=Math.hypot(en.x-s.x, en.y-s.y); const assigned=targetCount.get(en)||0;
-        const score=d+assigned*70; if(score<bestScore){bestScore=score; best=en;}
+        const assigned=targetCount.get(en)||0;
+        if(assigned>=getEnemyEngagementCap(en)) continue;
+        const d=Math.hypot(en.x-s.x, en.y-s.y);
+        const enemyAngle=Math.atan2(en.y-base.y,en.x-base.x);
+        let priority=en.kind==='commander'?-390:en.kind==='bomber'?-250:en.kind==='siege'?-180:en.elite?-90:0;
+        if(s.type==='cannon'){
+          priority+=en.kind==='siege'?-360:en.kind==='armored'?-250:en.kind==='commander'?-210:en.kind==='bomber'?-80:80;
+        } else if(s.type==='shield'){
+          priority+=en.kind==='bomber'?-420:en.kind==='fast'?-130:en.kind==='siege'?170:0;
+        }
+        const assignmentPenalty=assigned*(s.type==='cannon'?34:52);
+        const sectorPenalty=angleDistance(homeAngle,enemyAngle)*(s.type==='cannon'?22:38);
+        const score=d+assignmentPenalty+sectorPenalty+priority;
+        if(score<bestScore){bestScore=score;best=en;}
       }
       return best;
     }
     const assaultBuff = getAssaultCommand();
     for(const s of soldiers){
-      if(!s.target || s.target.hp<=0 || enemies.indexOf(s.target)===-1) s.target = pickTarget(s);
+      s.recoil=Math.max(0,(s.recoil||0)-dt*5.5);
+      if(!s.target){
+        s.target=pickTarget(s);
+        if(s.target) targetCount.set(s.target,(targetCount.get(s.target)||0)+1);
+      }
       let spdMult=1, atkSpdMult=1;
       const assaultActive = assaultBuff && (elapsed-s.spawnTime)<8;
       if(assaultActive){ spdMult*=(1+assaultBuff.speed/100); atkSpdMult*=(1+assaultBuff.atk/100); }
-      if(commandAtkSpeedTimer>0) atkSpdMult*=1.30;
+      if(commandAtkSpeedTimer>0) atkSpdMult*=1.45;
       const effSpeed = s.speed*spdMult;
       s.atkCd = Math.max(0, s.atkCd-dt);
       if(s.target){
-        const ox=Math.cos(s.approachAngle)*14, oy=Math.sin(s.approachAngle)*14;
-        const dx=(s.target.x+ox)-s.x, dy=(s.target.y+oy)-s.y; const d=Math.hypot(dx,dy); const reach=s.range+10;
+        const orbit=s.type==='cannon'?28:s.type==='rifler'?18:10;
+        const ox=Math.cos(s.approachAngle)*orbit, oy=Math.sin(s.approachAngle)*orbit;
+        const dx=(s.target.x+ox)-s.x, dy=(s.target.y+oy)-s.y;
+        const d=Math.hypot(dx,dy)||1;
+        const reach=s.range;
+        s.facing=Math.atan2(s.target.y-s.y,s.target.x-s.x)+Math.PI/2;
         if(d>reach){ s.x+=(dx/d)*effSpeed*dt; s.y+=(dy/d)*effSpeed*dt; }
         else if(s.atkCd<=0){
           let dmg=s.dmg;
           if(focusBonus>0 && (targetCount.get(s.target)||0)>=2) dmg*=(1+focusBonus/100);
-          s.target.hp -= dmg; s.atkCd = 0.5/atkSpdMult;
-          spawnHit(s.target.x, s.target.y, '#4fa3e3');
+          if(s.target.kind==='commander') dmg*=s.type==='cannon'?.72:.55;
+          if(s.type==='cannon'){
+            if(s.target.kind==='armored') dmg*=1.55;
+            if(s.target.kind==='siege') dmg*=1.75;
+          }
+          if(s.target.invulnTimer>0) dmg=0;
+          s.target.hp -= dmg;
+          s.atkCd = s.atkInterval/atkSpdMult;
+          s.recoil=1;
+          if(s.type==='cannon'){
+            const splashTargets=enemies
+              .filter(en=>en!==s.target && en.hp>0 && Math.hypot(en.x-s.target.x,en.y-s.target.y)<=s.splashRadius)
+              .sort((a,b)=>Math.hypot(a.x-s.target.x,a.y-s.target.y)-Math.hypot(b.x-s.target.x,b.y-s.target.y))
+              .slice(0,5);
+            for(const en of splashTargets){
+              let splash=dmg*s.splashRatio;
+              if(en.kind==='commander') splash*=.45;
+              if(en.invulnTimer>0) splash=0;
+              en.hp-=splash;
+            }
+            spawnCombatTracer(s.x,s.y,s.target.x,s.target.y,'#9fe7ff',true);
+            pushFx({x:s.target.x,y:s.target.y,r:4,max:s.splashRadius,color:'#7fcfff',life:.34,t:0,type:'ring'});
+            spawnRadialBurst(s.target.x,s.target.y,'#b7e9ff',10,115,2.1);
+            if(getVisualTier()>=3) addScreenShake(2.6);
+          } else if(s.type==='shield'){
+            spawnCombatTracer(s.x,s.y,s.target.x,s.target.y,'#79f0ff',true);
+            pushFx({x:s.target.x,y:s.target.y,r:3,max:20,color:'#6fe8ff',life:.22,t:0,type:'ring'});
+          } else {
+            const shotColor=assaultActive?'#ffd76b':commandAtkSpeedTimer>0?'#8de7ff':'#66baff';
+            spawnCombatTracer(s.x,s.y,s.target.x,s.target.y,shotColor,focusBonus>0 && (targetCount.get(s.target)||0)>=2);
+            spawnHit(s.target.x, s.target.y, shotColor);
+          }
         }
       } else {
-        const gx=base.x+Math.cos(s.guardAngle)*90, gy=base.y+Math.sin(s.guardAngle)*90;
-        const d=Math.hypot(s.x-gx, s.y-gy);
-        if(d>10){ s.x+=(gx-s.x)/d*effSpeed*0.45*dt; s.y+=(gy-s.y)/d*effSpeed*0.45*dt; }
+        const formation=getFormationPoint(s);
+        const dx=formation.x-s.x,dy=formation.y-s.y;
+        const d=Math.hypot(dx,dy)||1;
+        if(d>6){
+          s.facing=Math.atan2(dy,dx)+Math.PI/2;
+          const returnSpeed=d>80?0.82:0.58;
+          s.x+=dx/d*effSpeed*returnSpeed*dt;
+          s.y+=dy/d*effSpeed*returnSpeed*dt;
+        }
       }
-      s._assaultActive = assaultActive; // 시각 표시용
+      s._assaultActive = assaultActive;
     }
 
     for(const en of enemies){
+      const baseDx=base.x-en.x,baseDy=base.y-en.y,baseDist=Math.hypot(baseDx,baseDy)||1;
+
+      // 폭파병은 기본적으로 기지를 노리지만, 가까운 실드 벌크가 진로를 끊으면 그 자리에서 먼저 폭발한다.
+      if(en.kind==='bomber'){
+        let blocker=null,blockDist=Infinity;
+        for(const s of soldiers){
+          if(s.type!=='shield' || s.hp<=0) continue;
+          const d=Math.hypot(s.x-en.x,s.y-en.y);
+          if(d<s.blockRadius+18 && d<blockDist){blocker=s;blockDist=d;}
+        }
+        if(blocker){
+          if(blockDist>blocker.bodyRadius+9){
+            en.x+=(blocker.x-en.x)/blockDist*en.speed*dt;
+            en.y+=(blocker.y-en.y)/blockDist*en.speed*dt;
+          } else {
+            for(const s of soldiers){
+              const d=Math.hypot(s.x-en.x,s.y-en.y);
+              if(d<=52) damageSoldier(s,en.dmg*(s===blocker?.58:.32));
+            }
+            if(baseDist<base.radius+72) damageBase(en.dmg*.42);
+            en.detonated=true;en.hp=0;
+            for(let r=0;r<3;r++) pushFx({x:en.x,y:en.y,r:7+r*10,max:62+r*22,color:r%2?'#ffd24e':'#56dfff',life:.42+r*.09,t:-r*.03,type:'ring'});
+            spawnRadialBurst(en.x,en.y,'#a9f4ff',26,165,2.7);
+            spawnBanner(blocker.x,blocker.y-38,'실드 벌크 차단!','#8ff4ff');
+            addScreenShake(8);addScreenFlash('#8befff',.18);
+          }
+        } else if(baseDist>base.radius+10){
+          en.x+=baseDx/baseDist*en.speed*dt;en.y+=baseDy/baseDist*en.speed*dt;
+          if(Math.random()<dt*8) pushFx({x:en.x,y:en.y,vx:(Math.random()-.5)*18,vy:(Math.random()-.5)*18,drag:3,size:1.6,color:'#ffd34f',life:.22,t:0,type:'shard',rot:Math.random()*6});
+        } else {
+          damageBase(en.dmg*1.22);en.detonated=true;en.hp=0;
+          for(let r=0;r<4;r++) pushFx({x:base.x,y:base.y,r:8+r*11,max:80+r*28,color:r%2?'#ffd24e':'#ff5d36',life:.48+r*.10,t:-r*.03,type:'ring'});
+          spawnRadialBurst(base.x,base.y,'#ffbf42',34,190,3.0);
+          addScreenShake(13);addScreenFlash('#ffb13e',.38);damageVignetteAlpha=Math.max(damageVignetteAlpha,.48);
+          spawnBanner(base.x,base.y-68,'폭파병 기지 타격!','#ffcf66');
+          if(base.hp<=0){endRound(false);return;}
+        }
+        continue;
+      }
+
+      // 지휘관은 체력 구간마다 장갑이 파괴되고 코인·증원·폭발이 실제 전투와 함께 발생한다.
+      if(en.kind==='commander'){
+        en.armorFlash=Math.max(0,(en.armorFlash||0)-dt*2.5);
+        en.invulnTimer=Math.max(0,(en.invulnTimer||0)-dt);
+        const hpRatio=en.hp/en.maxHp;
+        if(hpRatio<=.67 && !en.bossBreak1){en.bossBreak1=true;triggerBossPhaseBreak(en,1);}
+        if(hpRatio<=.34 && !en.bossBreak2){en.bossBreak2=true;triggerBossPhaseBreak(en,2);}
+        en.specialCd-=dt;
+        if(en.specialCd<=0){
+          en.specialCd=hpRatio<=.34?2.05:hpRatio<=.67?2.55:3.05;
+          const victims=soldiers.slice().sort((a,b)=>Math.hypot(a.x-en.x,a.y-en.y)-Math.hypot(b.x-en.x,b.y-en.y)).slice(0,Math.min(8,soldiers.length));
+          for(const s of victims){damageSoldier(s,en.soldierDmg*.48);spawnCombatTracer(en.x,en.y,s.x,s.y,'#ff7164',true);}
+          damageBase(en.dmg*.34);
+          pushFx({x:en.x,y:en.y,r:18,max:185,color:'#ff4e45',life:.72,t:0,type:'ring'});
+          pushFx({x:base.x,y:base.y,r:base.radius,max:base.radius+78,color:'#ff6a55',life:.45,t:0,type:'ring'});
+          spawnRadialBurst(en.x,en.y,'#ff6658',24,145,2.5);
+          spawnBanner(en.x,en.y-42,'지휘관 포격!','#ff9c91');
+          addScreenShake(9);addScreenFlash('#ff5148',.20);damageVignetteAlpha=Math.max(damageVignetteAlpha,.26);
+          if(base.hp<=0){endRound(false);return;}
+        }
+      }
+
+      // 공성체는 병력벽 뒤에서 실제 기지를 계속 압박한다.
+      if(en.kind==='siege'){
+        if(baseDist>en.baseAttackRange){
+          en.x+=baseDx/baseDist*en.speed*dt;en.y+=baseDy/baseDist*en.speed*dt;
+        } else {
+          en.atkCd=Math.max(0,en.atkCd-dt);
+          if(en.atkCd<=0){
+            damageBase(en.dmg);en.atkCd=en.baseAtkInterval;
+            spawnCombatTracer(en.x,en.y,base.x,base.y,'#ff9a52',true);
+            pushFx({x:base.x,y:base.y,r:base.radius,max:base.radius+62,color:'#ff7b3f',life:.42,t:0,type:'ring'});
+            addScreenShake(6);addScreenFlash('#ff5f35',.16);damageVignetteAlpha=Math.max(damageVignetteAlpha,.30);
+            if(base.hp<=0){endRound(false);return;}
+          }
+        }
+        continue;
+      }
+
       let engaged=null, ed=Infinity;
-      for(const s of soldiers){ const d=Math.hypot(s.x-en.x, s.y-en.y); if(d<26 && d<ed){ ed=d; engaged=s; } }
+      const fastRush=en.kind==='fast' && baseDist>base.radius+58 && en.hp/en.maxHp>.42;
+      if(!fastRush){
+        for(const s of soldiers){
+          const d=Math.hypot(s.x-en.x, s.y-en.y);
+          const reach=s.blockRadius||30;
+          const priorityDist=d-(s.type==='shield'?16:0);
+          if(d<reach && priorityDist<ed){ ed=priorityDist; engaged=s; }
+        }
+      }
       if(engaged){
         en.atkCd=Math.max(0, en.atkCd-dt);
         if(en.atkCd<=0){
@@ -1198,28 +2141,38 @@
               .filter(v=>v.d<=62)
               .sort((a,b)=>a.d-b.d)
               .slice(0,en.soldierHitCount);
-            for(const v of nearby){ v.s.hp-=en.soldierDmg; spawnHit(v.s.x,v.s.y,'#e0483f'); }
+            for(const v of nearby){
+              damageSoldier(v.s,en.soldierDmg);
+              spawnCombatTracer(en.x,en.y,v.s.x,v.s.y,'#ff655c',true);
+              spawnHit(v.s.x,v.s.y,'#e0483f');
+            }
             spawnPulse(en.x,en.y,'#e0483f');
+            addScreenShake(en.kind==='commander'?5:1.8);
           } else {
-            engaged.hp-=en.soldierDmg;
+            damageSoldier(engaged,en.soldierDmg);
+            spawnCombatTracer(en.x,en.y,engaged.x,engaged.y,'#ff655c',en.elite);
             spawnHit(engaged.x,engaged.y,'#e0483f');
           }
           en.atkCd=en.soldierAtkInterval;
         }
         continue;
       }
-      const dx=base.x-en.x, dy=base.y-en.y, d=Math.hypot(dx,dy);
+      const dx=baseDx, dy=baseDy, d=baseDist;
       if(d>base.radius+8){ en.x+=(dx/d)*en.speed*dt; en.y+=(dy/d)*en.speed*dt; }
       else {
         en.atkCd=Math.max(0, en.atkCd-dt);
         if(en.atkCd<=0){
-          damageBase(en.dmg); en.atkCd=1.0; spawnPulse(base.x, base.y, '#e0483f');
+          damageBase(en.dmg); en.atkCd=en.baseAtkInterval; spawnPulse(base.x, base.y, '#e0483f');
+          spawnCombatTracer(en.x,en.y,base.x,base.y,'#ff443d',true);
+          addScreenShake(en.kind==='commander'?9:4);
+          addScreenFlash('#ff2f28',en.kind==='commander'?.30:.12);
+          damageVignetteAlpha=Math.max(damageVignetteAlpha,en.kind==='commander'?.52:.24);
           if(base.hp<=0){ endRound(false); return; }
         }
       }
     }
 
-    separate(soldiers,20); separate(enemies,18);
+    separate(soldiers); separate(enemies,18);
 
     const mag = getMagnetic();
     const cursorMagnetLevel = L('pickupRadius');
@@ -1230,6 +2183,7 @@
       const c=coins[i]; c.t+=dt; const popped=c.t>=c.popDur;
       let autoCollected=false;
       let cursorCollected=false;
+      const droneCollected=!!c.droneCollected;
 
       const cursorDx=mouseX-c.tx, cursorDy=mouseY-c.ty;
       const cursorDist=cursorAvailable?(Math.hypot(cursorDx,cursorDy)||1):Infinity;
@@ -1304,14 +2258,21 @@
         c.magnetGlow=Math.max(0,(c.magnetGlow||0)-dt*5);
       }
 
-      if(popped && (cursorCollected || autoCollected)){
+      if(popped && (cursorCollected || autoCollected || droneCollected)){
         const gained=c.value*getGoldMultiplier(c.eliteMult);
         gold+=gained; earnedThisRound+=gained;
         const shown=Math.max(1,Math.floor(gained));
-        const popX=autoCollected?base.x:(cursorAvailable?mouseX:c.tx);
-        const popY=autoCollected?base.y-12:(cursorAvailable?mouseY-10:c.ty);
+        const drone=c.droneCollector;
+        const popX=droneCollected&&drone?drone.x:(autoCollected?base.x:(cursorAvailable?mouseX:c.tx));
+        const popY=droneCollected&&drone?drone.y-10:(autoCollected?base.y-12:(cursorAvailable?mouseY-10:c.ty));
         spawnGoldPop(popX, popY, shown,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop);
+        applyGoldGainAccumulator(c,gained,popX,popY);
         if(autoCollected) spawnPulse(base.x,base.y,(COIN_TYPES[c.coinType]||COIN_TYPES.yellow).pop);
+        if(droneCollected&&drone){
+          spawnCombatTracer(drone.x,drone.y,base.x,base.y,'#7ff2c8',false);
+          pushFx({x:drone.x,y:drone.y,r:2,max:18,color:'#7ff2c8',life:.28,t:0,type:'ring'});
+        }
+        releaseDroneTarget(c);
         coins.splice(i,1);
       }
     }
@@ -1319,8 +2280,22 @@
     for(let i=enemies.length-1;i>=0;i--){
       if(enemies[i].hp<=0){
         const defeated=enemies[i];
+        if(defeated.detonated){enemies.splice(i,1);continue;}
         kills++;
         comboCount = comboTimer>0 ? comboCount+1 : 1; comboTimer=3;
+        spawnDeathFx(defeated);
+        if(getVisualTier()>=2 && kills%10===0){
+          spawnBanner(base.x,base.y-94,kills+' KILL STREAK','#ffd06e');
+          addScreenFlash('#ffd06e',0.12);
+          addScreenShake(4);
+        }
+        if(L('chainBounty')>0 && comboCount>=10 && comboCount%10===0){
+          const burstCoins=4+L('chainBounty')*2+Math.min(8,Math.floor(comboCount/15));
+          for(let b=0;b<burstCoins;b++) spawnCoin(defeated.x,defeated.y,1,1,{coinType:'yellow',minDist:22,maxDist:66,popDur:.45});
+          spawnBanner(defeated.x,defeated.y-28,comboCount+' COMBO 현상금!','#ffd06e');
+          pushFx({x:defeated.x,y:defeated.y,r:8,max:88,color:'#ffd06e',life:.55,t:0,type:'ring'});
+          addScreenShake(5);
+        }
         spawnEnemyCoinDrops(defeated);
         if(defeated.kind==='commander'){
           commanderDefeated=true;
@@ -1329,12 +2304,33 @@
           earnedThisRound+=commanderBonus;
           spawnGoldPop(defeated.x,defeated.y,commanderBonus,'#e8a33d');
           spawnBanner(base.x,base.y-72,'지휘관 격파 보너스 +'+commanderBonus,'#e8a33d');
+          if(overtimeActive){overtimeActive=false;roundEnding=true;roundEndGrace=1.45;timeLeft=0;}
         }
         enemies.splice(i,1);
       }
     }
-    for(let i=soldiers.length-1;i>=0;i--){ if(soldiers[i].hp<=0){ spawnHit(soldiers[i].x, soldiers[i].y, '#7d8ba0'); soldiers.splice(i,1); } }
-    for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.t+=dt; if(p.vy) p.y+=p.vy*dt; if(p.t>=p.life) particles.splice(i,1); }
+    for(let i=soldiers.length-1;i>=0;i--){
+      if(soldiers[i].hp<=0){
+        const fallen=soldiers[i];
+        const color=fallen.type==='shield'?'#6fe8ff':fallen.type==='cannon'?'#9fc7ff':'#7d8ba0';
+        spawnHit(fallen.x,fallen.y,color);
+        if(fallen.type!=='rifler') spawnRadialBurst(fallen.x,fallen.y,color,8,80,1.8);
+        soldiers.splice(i,1);
+      }
+    }
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      p.t+=dt;
+      if(Number.isFinite(p.vx)) p.x+=p.vx*dt;
+      if(Number.isFinite(p.vy)) p.y+=p.vy*dt;
+      if(Number.isFinite(p.drag)){
+        const damp=Math.exp(-p.drag*dt);
+        if(Number.isFinite(p.vx)) p.vx*=damp;
+        if(Number.isFinite(p.vy)) p.vy*=damp;
+      }
+      if(Number.isFinite(p.spin)) p.rot=(p.rot||0)+p.spin*dt;
+      if(p.t>=p.life) particles.splice(i,1);
+    }
 
     updateHud();
   }
@@ -1342,6 +2338,9 @@
   function endRound(success){
     if(!running) return;
     running=false;
+    comboHud.classList.remove('show'); bossHud.classList.remove('show');
+    screenFlashAlpha=0; damageVignetteAlpha=0; coinDrones.forEach(d=>d.target=null);
+    dangerVignette.style.opacity='0'; screenFlashDom.style.opacity='0';
     cmdBtn.classList.remove('show'); cmdPanel.classList.remove('show'); commandState='done'; gameSpeedMult=1;
     const survived = Math.floor(elapsed);
     const collectedGold=Math.floor(gold);
@@ -1361,18 +2360,50 @@
     roundRewardNoteEl.textContent = success
       ? '수집 '+collectedGold+(commanderDefeated?' · 지휘관 격파 포함':'')
       : '수집 '+collectedGold+' · 함락 정산 65%';
-    goldBankedEl.textContent = Math.floor(meta.gold);
+    goldBankedEl.textContent = bankGoldText();
     overlay.classList.add('show');
   }
 
   // ---------- drawing ----------
   function draw(){
+    const tier=getVisualTier();
     ctx.clearRect(0,0,W,H);
-    ctx.save(); ctx.strokeStyle='rgba(34,48,63,0.35)'; ctx.lineWidth=1;
-    const gap=40;
-    for(let x=(cx%gap); x<W; x+=gap){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-    for(let y=(cy%gap); y<H; y+=gap){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // 깊이감 있는 전장 배경. 성장 전에는 차분하고, 극후반으로 갈수록 에너지 밀도가 높아진다.
+    const bg=ctx.createRadialGradient(base.x,base.y,20,base.x,base.y,Math.max(W,H)*.72);
+    bg.addColorStop(0,tier>=4?'#101c2a':'#0d151f');
+    bg.addColorStop(.48,tier>=3?'#090f18':'#090d13');
+    bg.addColorStop(1,'#05070b');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    for(const st of ambientStars){
+      const tw=.25+.55*(.5+.5*Math.sin(elapsed*(.5+st.depth)+st.phase));
+      ctx.globalAlpha=(.12+tier*.035)*tw;
+      ctx.fillStyle=st.depth>.7?'#7dc7ff':'#8b9db1';
+      ctx.beginPath();ctx.arc(st.x,st.y,st.r*(.65+tier*.06),0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    screenShakeX=screenShake>0?(Math.random()-.5)*screenShake:0;
+    screenShakeY=screenShake>0?(Math.random()-.5)*screenShake:0;
+    ctx.save();
+    ctx.translate(screenShakeX,screenShakeY);
+
+    ctx.save(); ctx.strokeStyle='rgba(45,72,94,'+(0.22+tier*.035)+')'; ctx.lineWidth=1;
+    const gap=tier>=4?32:40;
+    const scroll=(elapsed*(tier>=3?8:2))%gap;
+    for(let x=(cx%gap)+scroll-gap; x<W; x+=gap){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=(cy%gap)+scroll-gap; y<H; y+=gap){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
     ctx.restore();
+
+    if(tier>=3){
+      ctx.save();ctx.translate(base.x,base.y);ctx.rotate(elapsed*.08);
+      ctx.strokeStyle='rgba(76,151,215,'+(0.08+tier*.025)+')';ctx.lineWidth=1.2;
+      for(let i=0;i<4;i++){
+        ctx.beginPath();ctx.arc(0,0,250+i*42,i*.8,i*.8+1.15);ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     ctx.save(); ctx.translate(base.x, base.y);
     const sweepAngle=(elapsed*0.8)%(Math.PI*2);
@@ -1385,9 +2416,39 @@
     for(let r=70;r<=210;r+=70){ ctx.beginPath(); ctx.arc(base.x,base.y,r,0,Math.PI*2); ctx.stroke(); }
     ctx.restore();
 
-    for(const p of particles){ const k=p.t/p.life;
-      if(p.type==='ring'){ ctx.save(); ctx.globalAlpha=1-k; ctx.strokeStyle=p.color; ctx.lineWidth=3;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r+(p.max-p.r)*k,0,Math.PI*2); ctx.stroke(); ctx.restore(); } }
+    for(const p of particles){
+      const k=Math.max(0,p.t/p.life);
+      if(p.type==='ring'){
+        ctx.save(); ctx.globalAlpha=Math.max(0,1-k); ctx.strokeStyle=p.color; ctx.lineWidth=2.2+(1-k)*2.2;
+        ctx.shadowColor=p.color; ctx.shadowBlur=tier>=3?10:0;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r+(p.max-p.r)*Math.min(1,k),0,Math.PI*2); ctx.stroke(); ctx.restore();
+      } else if(p.type==='portal'){
+        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(elapsed*2.4+(p.phase||0));
+        ctx.globalAlpha=Math.max(0,1-k);ctx.strokeStyle=p.color;ctx.lineWidth=1.5;
+        const rr=p.r+(p.max-p.r)*Math.min(1,k);
+        for(let q=0;q<3;q++){
+          ctx.beginPath();ctx.arc(0,0,Math.max(.5,rr-q*4),q*1.7,q*1.7+Math.PI*.9);ctx.stroke();
+        }
+        ctx.restore();
+      } else if(p.type==='tracer'){
+        ctx.save();
+        const fade=Math.max(0,1-k);
+        const dx=p.x2-p.x,dy=p.y2-p.y,d=Math.hypot(dx,dy)||1,nx=dx/d,ny=dy/d;
+        const head=Math.min(1,k*4);
+        const tail=Math.max(0,head-.55);
+        const x1=p.x+dx*tail,y1=p.y+dy*tail,x2=p.x+dx*head,y2=p.y+dy*head;
+        ctx.globalAlpha=fade;
+        ctx.strokeStyle=p.color;ctx.lineCap='round';
+        ctx.shadowColor=p.color;ctx.shadowBlur=8+tier*2;
+        ctx.lineWidth=p.width+3;ctx.globalAlpha=fade*.16;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+        ctx.globalAlpha=fade;ctx.lineWidth=p.width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+        ctx.globalAlpha=fade*.9;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(x2,y2,1.3+p.width*.35,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+      } else if(p.type==='smoke'){
+        ctx.save();ctx.globalAlpha=Math.max(0,(1-k)*.34);ctx.fillStyle=p.color;
+        ctx.beginPath();ctx.arc(p.x,p.y,(p.size||7)*(1+k*1.6),0,Math.PI*2);ctx.fill();ctx.restore();
+      }
+    }
 
     for(const c of coins){
       const k=Math.min(1,c.t/c.popDur), ex=1-Math.pow(1-k,3);
@@ -1451,13 +2512,60 @@
       ctx.restore();
     }
 
+    for(const d of coinDrones){
+      ctx.save();
+      if(d.target){
+        ctx.globalAlpha=.28+.18*Math.sin(d.beamPulse);
+        ctx.strokeStyle='#7ff2c8';ctx.lineWidth=1;ctx.setLineDash([4,6]);
+        ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.target.tx,d.target.ty);ctx.stroke();ctx.setLineDash([]);
+      }
+      ctx.translate(d.x,d.y);ctx.rotate(d.facing||0);
+      ctx.globalAlpha=1;
+      if(d.flash>0){ctx.shadowColor='#9effdf';ctx.shadowBlur=12+d.flash*14;}
+      const drawn=drawUnitSprite('collector',31,38);
+      if(!drawn){
+        ctx.fillStyle=d.flash>0?'#eafff7':'#79e5c2';ctx.shadowColor='#79e5c2';ctx.shadowBlur=8+d.flash*10;
+        ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#bfffee';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(0,-13);ctx.lineTo(8,-7);ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     for(const s of soldiers){
-      ctx.save(); ctx.translate(s.x,s.y);
-      if(s._assaultActive){ ctx.strokeStyle='#ffd76b'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.stroke(); }
-      ctx.fillStyle='#4fa3e3';
-      ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(7,7); ctx.lineTo(-7,7); ctx.closePath(); ctx.fill();
-      const w=16; ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(-w/2,11,w,3);
-      ctx.fillStyle='#3fbf7f'; ctx.fillRect(-w/2,11,w*Math.max(0,s.hp/s.maxHp),3);
+      ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.facing||0);
+      const auraRadius=(s.bodyRadius||10)+4+tier*.7;
+      if(tier>=2){
+        ctx.globalAlpha=.12+tier*.02;
+        ctx.fillStyle=s.type==='shield'?'#65ecff':s.type==='cannon'?'#99c7ff':s._assaultActive?'#ffd76b':'#4fa3e3';
+        ctx.beginPath();ctx.arc(0,0,auraRadius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      }
+      if(s._assaultActive){
+        ctx.strokeStyle='#ffd76b';ctx.shadowColor='#ffd76b';ctx.shadowBlur=8;ctx.lineWidth=1.7;
+        ctx.beginPath();ctx.arc(0,0,auraRadius+2,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+      }
+      if(commandAtkSpeedTimer>0 && tier>=2){
+        ctx.strokeStyle='rgba(120,230,255,.8)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(0,0,auraRadius+5+Math.sin(elapsed*9+s.guardAngle)*2,-1.2,1.2);ctx.stroke();
+      }
+      if(s.type==='shield'){
+        ctx.globalAlpha=.16;ctx.fillStyle='#7af2ff';ctx.beginPath();ctx.arc(0,-5,21,-Math.PI*.88,-Math.PI*.12);ctx.lineTo(0,-5);ctx.fill();ctx.globalAlpha=1;
+      }
+      if(s.recoil>0 && s.type==='cannon') ctx.translate(0,s.recoil*3.5);
+      const drawn=drawUnitSprite(s.sprite||'rifler',s.drawW||32,s.drawH||39);
+      if(!drawn){
+        ctx.fillStyle=s.type==='shield'?'#7de8f2':s.type==='cannon'?'#91bfe8':'#4fa3e3';
+        ctx.beginPath();
+        if(s.type==='shield'){ctx.arc(0,2,13,Math.PI,0);ctx.lineTo(8,10);ctx.lineTo(-8,10);ctx.closePath();}
+        else if(s.type==='cannon'){ctx.arc(0,2,11,0,Math.PI*2);ctx.moveTo(-3,-8);ctx.rect(-3,-17,6,12);}
+        else {ctx.moveTo(0,-13);ctx.lineTo(9,9);ctx.lineTo(0,5);ctx.lineTo(-9,9);ctx.closePath();}
+        ctx.fill();
+      }
+      ctx.rotate(-(s.facing||0));
+      const w=s.type==='shield'?28:s.type==='cannon'?25:21;
+      if(s.hp<s.maxHp*.995){
+        ctx.fillStyle='rgba(0,0,0,0.58)';ctx.fillRect(-w/2,(s.drawH||39)/2+2,w,3);
+        ctx.fillStyle=s.type==='shield'?'#60dff0':'#3fbf7f';ctx.fillRect(-w/2,(s.drawH||39)/2+2,w*Math.max(0,s.hp/s.maxHp),3);
+      }
       ctx.restore();
     }
 
@@ -1466,16 +2574,50 @@
       let radius=8, col='#e0483f';
       if(en.kind==='fast'){ radius=7; col='#5fd0e0'; }
       if(en.kind==='armored'){ radius=10; col='#8a5a3f'; }
+      if(en.kind==='siege'){ radius=11; col='#b75d32'; }
+      if(en.kind==='bomber'){ radius=8; col='#e6a829'; }
       if(en.kind==='commander'){ radius=15; col='#7a1f1f'; }
       if(en.elite){ radius+=3; }
-      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(0,0,radius,0,Math.PI*2); ctx.fill();
+      if(en.spawnFx>0){ en.spawnFx=Math.max(0,en.spawnFx-.016); ctx.globalAlpha=.45+.55*(1-en.spawnFx/.42); }
+      if(tier>=2 || en.elite){
+        ctx.globalAlpha*=.16+(en.elite?.16:.05);
+        ctx.fillStyle=en.elite?'#e8a33d':col;ctx.beginPath();ctx.arc(0,0,radius+6+tier,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=en.spawnFx>0?.45+.55*(1-en.spawnFx/.42):1;
+      }
+      ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=en.elite||tier>=4?8+tier:0;
+      ctx.beginPath();
+      if(en.kind==='siege'){
+        ctx.rotate(Math.PI/4);ctx.rect(-radius*.78,-radius*.78,radius*1.56,radius*1.56);
+      } else if(en.kind==='bomber'){
+        for(let q=0;q<8;q++){const a=-Math.PI/2+q*Math.PI/4,rr=q%2?radius*.55:radius;const px=Math.cos(a)*rr,py=Math.sin(a)*rr;if(q===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.closePath();
+      } else ctx.arc(0,0,radius,0,Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur=0;
       ctx.strokeStyle = en.elite ? '#e8a33d' : '#3a0f0d'; ctx.lineWidth = en.elite?2.5:1.5; ctx.stroke();
+      if(en.kind==='siege'){
+        ctx.rotate(-Math.PI/4);ctx.strokeStyle='#ffb16e';ctx.lineWidth=1.6;
+        ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(8,0);ctx.moveTo(5,-3);ctx.lineTo(9,0);ctx.lineTo(5,3);ctx.stroke();
+      }
       if(en.elite){ ctx.fillStyle='#e8a33d'; ctx.font="700 9px 'Orbitron', sans-serif"; ctx.textAlign='center'; ctx.fillText('★', 0, -radius-6); }
+      if(en.kind==='siege'){
+        ctx.fillStyle='#ffbf86';ctx.font="700 8px 'Orbitron', sans-serif";ctx.textAlign='center';ctx.fillText('공성',0,-radius-12);
+      }
+      if(en.kind==='bomber'){
+        ctx.save();ctx.rotate(-elapsed*7);ctx.strokeStyle='#fff0a0';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(0,0,radius+5,-.8,.8);ctx.stroke();ctx.restore();
+        ctx.fillStyle='#fff0a0';ctx.font="700 8px 'Orbitron', sans-serif";ctx.textAlign='center';ctx.fillText('폭파',0,-radius-11);
+      }
       if(en.kind==='commander'){
-        ctx.strokeStyle='rgba(224,72,63,.55)'; ctx.lineWidth=2;
-        ctx.beginPath(); ctx.arc(0,0,radius+8+Math.sin(elapsed*4)*2,0,Math.PI*2); ctx.stroke();
-        ctx.fillStyle='#ff9b8f'; ctx.font="700 9px 'Orbitron', sans-serif"; ctx.textAlign='center';
-        ctx.fillText('지휘관',0,-radius-17);
+        if(en.armorFlash>0){ctx.globalAlpha=.35*en.armorFlash;ctx.fillStyle='#fff6c9';ctx.beginPath();ctx.arc(0,0,radius+18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+        ctx.save();
+        for(let q=0;q<3;q++){
+          ctx.rotate((q%2?1:-1)*elapsed*(.35+q*.15));
+          ctx.strokeStyle=q===1?'rgba(255,190,100,.65)':'rgba(224,72,63,.55)';
+          ctx.lineWidth=q===1?2.4:1.4;
+          ctx.beginPath();ctx.arc(0,0,radius+9+q*6+Math.sin(elapsed*4+q)*2,q*1.4,q*1.4+Math.PI*1.05);ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle='#ffb5aa'; ctx.font="700 9px 'Orbitron', sans-serif"; ctx.textAlign='center';
+        ctx.fillText('지휘관',0,-radius-25);
       }
       const w=radius*2.2;
       ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(-w/2,radius+4,w,3);
@@ -1484,13 +2626,68 @@
     }
 
     ctx.save(); ctx.translate(base.x, base.y);
-    const pulse=1+Math.sin(elapsed*3)*0.02;
+    const pulse=1+Math.sin(elapsed*3)*0.025;
+    const coreColor=overloadTimer>0?'#ff9a3c':commandAtkSpeedTimer>0?'#70e6ff':'#4fa3e3';
+    const laserCfg=getBaseLaser();
+    if(laserCfg){
+      const charge=Math.max(0,Math.min(1,baseLaserTimer/laserCfg.interval));
+      ctx.save();ctx.rotate(-Math.PI/2);
+      ctx.strokeStyle=baseLaserChargeFlash>0?'#eaffff':'rgba(110,235,255,.82)';
+      ctx.shadowColor='#7ff2ff';ctx.shadowBlur=7+baseLaserChargeFlash*16;ctx.lineWidth=2.4;
+      ctx.beginPath();ctx.arc(0,0,base.radius+18,0,Math.PI*2*charge);ctx.stroke();ctx.restore();
+    }
+
+    if(tier>=1){
+      for(let q=0;q<Math.min(5,tier+1);q++){
+        ctx.save();ctx.rotate((q%2?1:-1)*elapsed*(.22+q*.07)+q);
+        ctx.strokeStyle=q===tier?'rgba(255,207,112,.65)':'rgba(79,163,227,'+(.18+tier*.025)+')';
+        ctx.lineWidth=q===tier?2:1;
+        ctx.beginPath();ctx.arc(0,0,base.radius+14+q*7,-.72,.72);ctx.stroke();ctx.restore();
+      }
+    }
+    if(tier>=4){
+      for(let q=0;q<4;q++){
+        const a=elapsed*(.65+(q%2)*.18)+q*Math.PI/2;
+        const rr=base.radius+29+tier*2;
+        ctx.fillStyle=q%2?'#ffd06e':'#80d7ff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=9;
+        ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,2.3,0,Math.PI*2);ctx.fill();
+      }
+      ctx.shadowBlur=0;
+    }
+
+    ctx.globalAlpha=.18+tier*.025;ctx.fillStyle=coreColor;ctx.beginPath();ctx.arc(0,0,base.radius+8+tier*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     ctx.beginPath(); ctx.arc(0,0,base.radius*pulse,0,Math.PI*2);
-    const bgrad=ctx.createRadialGradient(0,0,4,0,0,base.radius*pulse);
-    bgrad.addColorStop(0,'#2a3a4c'); bgrad.addColorStop(1,'#141c26');
-    ctx.fillStyle=bgrad; ctx.fill();
+    const bgrad=ctx.createRadialGradient(-7,-8,3,0,0,base.radius*pulse);
+    bgrad.addColorStop(0,tier>=3?'#d3f2ff':'#637a91');
+    bgrad.addColorStop(.18,coreColor);
+    bgrad.addColorStop(.48,'#26394c');
+    bgrad.addColorStop(1,'#101721');
+    ctx.fillStyle=bgrad;ctx.shadowColor=coreColor;ctx.shadowBlur=tier>=3?18:7;ctx.fill();ctx.shadowBlur=0;
     ctx.lineWidth=3; ctx.strokeStyle = base.hp/base.maxHp>0.3?'#e8a33d':'#e0483f'; ctx.stroke();
+
+    if(tier>=2){
+      ctx.rotate(elapsed*.32);
+      ctx.strokeStyle='rgba(220,246,255,.72)';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(0,-13);ctx.lineTo(13,0);ctx.lineTo(0,13);ctx.closePath();ctx.stroke();
+    }
     ctx.restore();
+
+    // 기지 자동 레이저 레벨에 따라 실제 포드 이미지가 1~4기 배치되고 표적 방향으로 회전한다.
+    const laserPods=getLaserPodPositions();
+    for(let i=0;i<laserPods.length;i++){
+      const pod=laserPods[i];
+      const aim=baseLaserAimTargets.length?baseLaserAimTargets[i%baseLaserAimTargets.length]:null;
+      const facing=aim?Math.atan2(aim.y-pod.y,aim.x-pod.x)+Math.PI/2:pod.angle+Math.PI/2;
+      ctx.save();ctx.translate(pod.x,pod.y);ctx.rotate(facing);
+      if(baseLaserChargeFlash>0){
+        ctx.globalAlpha=.20+.25*baseLaserChargeFlash;ctx.fillStyle='#8ef5ff';ctx.shadowColor='#8ef5ff';ctx.shadowBlur=14;
+        ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
+      }
+      if(!drawUnitSprite('laserPod',32,36)){
+        ctx.fillStyle='#67d8ef';ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(12,10);ctx.lineTo(-12,10);ctx.closePath();ctx.fill();
+      }
+      ctx.restore();
+    }
 
     ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(-Math.PI/2);
     ctx.lineWidth=5; ctx.strokeStyle='rgba(255,255,255,0.08)';
@@ -1499,11 +2696,21 @@
     ctx.beginPath(); ctx.arc(0,0,base.radius+10,0,Math.PI*2*Math.max(0,base.hp/base.maxHp)); ctx.stroke();
     ctx.restore();
 
-    for(const p of particles){ const k=p.t/p.life;
-      if(p.type==='spark'){ ctx.save(); ctx.globalAlpha=1-k; ctx.fillStyle=p.color; ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r*(1-k*0.5),0,Math.PI*2); ctx.fill(); ctx.restore(); }
-      else if(p.type==='text'){ ctx.save(); ctx.globalAlpha=1-k; ctx.fillStyle=p.color;
-        ctx.font="700 12px 'Rajdhani', sans-serif"; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y); ctx.restore(); } }
+    for(const p of particles){
+      const k=Math.max(0,p.t/p.life);
+      if(p.type==='spark'){
+        ctx.save();ctx.globalAlpha=Math.max(0,1-k);ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=tier>=2?7:0;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1-k*.45),0,Math.PI*2);ctx.fill();ctx.restore();
+      } else if(p.type==='shard'){
+        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot||0);ctx.globalAlpha=Math.max(0,1-k);
+        ctx.strokeStyle=p.color;ctx.lineWidth=p.size||1.5;ctx.lineCap='round';ctx.shadowColor=p.color;ctx.shadowBlur=tier>=3?5:0;
+        ctx.beginPath();ctx.moveTo(-(p.size||2)*2,0);ctx.lineTo((p.size||2)*2,0);ctx.stroke();ctx.restore();
+      } else if(p.type==='text'){
+        ctx.save();ctx.globalAlpha=Math.max(0,1-k);ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=p.bold?9:3;
+        ctx.font=(p.bold?'900 ':'700 ')+(p.size||12)+"px 'Rajdhani', sans-serif";ctx.textAlign='center';
+        ctx.fillText(p.text,p.x,p.y);ctx.restore();
+      }
+    }
 
     if(comboCount>1 && comboTimer>0){
       ctx.save(); ctx.fillStyle='#e8a33d'; ctx.font="700 14px 'Orbitron', sans-serif"; ctx.textAlign='center';
@@ -1513,6 +2720,23 @@
     ctx.save(); ctx.fillStyle='#7d8ba0'; ctx.font="600 11px 'Rajdhani', sans-serif"; ctx.textAlign='center';
     ctx.fillText(Math.max(0,Math.ceil(base.hp))+' / '+base.maxHp+' HP', base.x, base.y+base.radius+26);
     ctx.restore();
+
+    ctx.restore(); // screen shake world transform
+
+    if(commanderEntranceTimer>0){
+      const a=Math.min(1,commanderEntranceTimer/2.2);
+      ctx.save();ctx.globalAlpha=.10*a;ctx.fillStyle='#ff342e';ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=.35*a;ctx.strokeStyle='#ff5b52';ctx.lineWidth=2;
+      const rr=(2.2-commanderEntranceTimer)*Math.max(W,H)*.42;
+      ctx.beginPath();ctx.arc(base.x,base.y,rr,0,Math.PI*2);ctx.stroke();ctx.restore();
+    }
+
+    if(tier>=5){
+      const edge=ctx.createRadialGradient(cx,cy,Math.min(W,H)*.2,cx,cy,Math.max(W,H)*.7);
+      edge.addColorStop(0,'rgba(0,0,0,0)');
+      edge.addColorStop(1,'rgba(30,4,8,'+(0.18+Math.sin(elapsed*2)*.025)+')');
+      ctx.fillStyle=edge;ctx.fillRect(0,0,W,H);
+    }
   }
 
   let last = performance.now();
